@@ -1,0 +1,27 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+```
+
+The `[[redirects]]` block is critical — without it, React Router breaks on Netlify (page refresh gives 404).
+
+### Database on Render
+
+Render offers a free MySQL-compatible database (PostgreSQL actually — but we'll use **Railway** or **PlanetScale** for MySQL). The easiest free MySQL in the cloud right now is **Railway**. When you're ready to deploy:
+
+1. Go to `railway.app` → New Project → MySQL
+2. It gives you a connection string — you just replace your `.env` values
+3. Run your schema SQL there using their built-in query editor
+
+---
+
+## What to do right now
+
+Don't worry about deployment yet — finish building first. The flow is:
+```
+Build locally → Push to GitHub → Connect GitHub to Render/Netlify → Done
