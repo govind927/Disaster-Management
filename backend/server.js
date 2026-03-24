@@ -17,6 +17,7 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/incidents', require('./routes/incidents'));
 app.get('/api/health', (req, res) => res.json({ status: 'OK', time: new Date() }));
 
 io.on('connection', socket => {
