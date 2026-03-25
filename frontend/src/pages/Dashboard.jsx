@@ -1,16 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useWeatherAlerts } from '../hooks/useWeatherAlerts'; 
+import AlertBanner from '../components/AlertBanner';
 import api from '../api/axios';
 
 const severityColor = { low: '#22c55e', medium: '#f59e0b', high: '#ef4444' };
 const statusColor   = { pending: '#f59e0b', active: '#3b82f6', resolved: '#22c55e' };
 
 export default function Dashboard() {
-  const { user, logout }      = useAuth();
+  const { user, logout } = useAuth();
+  const { alert: weatherAlert } = useWeatherAlerts();
+  const [alertDismissed, setAlertDismissed] = useState(false);
+
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate              = useNavigate();
+  const navigate = useNavigate();
 
   useEffect(() => {
     api.get('/incidents/my')
@@ -30,10 +35,17 @@ export default function Dashboard() {
           <button onClick={() => navigate('/report')} style={s.reportBtn}>Report Incident</button>
           <button onClick={() => navigate('/map')} style={s.mapBtn}>View Map</button>
           <button onClick={handleLogout} style={s.logoutBtn}>Logout</button>
+          <button onClick={() => navigate('/alerts')} style={s.alertsBtn}>View Alerts</button>
         </div>
       </div>
 
       <div style={s.content}>
+        
+        {/* Weather Alert Banner */}
+        {!alertDismissed && weatherAlert && (
+          <AlertBanner alert={weatherAlert} onDismiss={() => setAlertDismissed(true)} />
+        )}
+
         <h3 style={s.sectionTitle}>My Reported Incidents</h3>
 
         {loading && <p style={{ color: '#6b7280' }}>Loading...</p>}
@@ -51,8 +63,11 @@ export default function Dashboard() {
           {incidents.map(inc => (
             <div key={inc.id} style={s.card}>
               {inc.image_url && (
-                <img src={`${import.meta.env.VITE_BACKEND_URL}${inc.image_url}`}
-                  alt="incident" style={s.img} />
+                <img
+                  src={`${import.meta.env.VITE_BACKEND_URL}${inc.image_url}`}
+                  alt="incident"
+                  style={s.img}
+                />
               )}
               <div style={s.cardBody}>
                 <div style={s.cardTop}>
@@ -98,4 +113,5 @@ const s = {
   incTitle:    { margin: '0 0 4px', fontSize: 15, fontWeight: 600, color: '#111' },
   incDesc:     { margin: '0 0 8px', fontSize: 13, color: '#6b7280', lineHeight: 1.5 },
   incDate:     { margin: 0, fontSize: 11, color: '#9ca3af' },
+  alertsBtn:   { padding: '8px 14px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 500 },
 };
