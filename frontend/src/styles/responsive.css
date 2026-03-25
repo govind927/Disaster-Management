@@ -1,0 +1,188 @@
+/* ─── Base reset ─── */
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: sans-serif; }
+
+/* ─── Navbar ─── */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.navbar-brand { font-size: 17px; font-weight: 600; color: #1e40af; margin: 0; }
+.navbar-right  { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+
+/* ─── Dashboard grid ─── */
+.incident-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+/* ─── Stats grid ─── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ─── Forecast grid ─── */
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+/* ─── Resource grid ─── */
+.resource-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 0.75rem;
+}
+
+/* ─── Table wrapper ─── */
+.table-wrap { overflow-x: auto; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.table-wrap table { min-width: 700px; }
+
+/* ─── Filter bar ─── */
+.filter-bar {
+  background: #fff;
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+.filter-group { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+
+/* ─── Form rows ─── */
+.form-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+.form-row > * { flex: 1; min-width: 140px; }
+
+/* ─── Admin tabs ─── */
+.tab-bar {
+  background: #fff;
+  padding: 0 1rem;
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid #e5e7eb;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
+
+/* ─── Page content wrapper ─── */
+.page {
+  min-height: 100vh;
+  background: #f3f4f6;
+}
+
+.page-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+
+/* ─── Inline form ─── */
+.inline-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.inline-form input,
+.inline-form select { flex: 1; min-width: 120px; }
+
+/* ─── Weather card ─── */
+.weather-main {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.weather-stats {
+  display: flex;
+  gap: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ─── Map height ─── */
+.map-container { height: calc(100vh - 120px); }
+
+/* ─── Modal ─── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+.modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 440px;
+}
+
+/* ─── TABLET (max 768px) ─── */
+@media (max-width: 768px) {
+  .navbar { padding: 0.75rem 1rem; }
+  .navbar-brand { font-size: 15px; }
+
+  .stats-grid { grid-template-columns: repeat(4, 1fr); }
+
+  .page-content { padding: 1rem 0.75rem; }
+
+  .incident-grid { grid-template-columns: 1fr 1fr; }
+
+  .weather-main { gap: 1rem; }
+
+  .filter-bar { padding: 0.5rem 0.75rem; }
+
+  .tab-bar { padding: 0 0.75rem; }
+}
+
+/* ─── MOBILE (max 480px) ─── */
+@media (max-width: 480px) {
+  .navbar { padding: 0.6rem 0.75rem; }
+  .navbar-brand { font-size: 14px; }
+  .navbar-right { gap: 0.35rem; }
+  .navbar-right button { padding: 5px 8px; font-size: 12px; }
+
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+
+  .incident-grid { grid-template-columns: 1fr; }
+
+  .resource-grid { grid-template-columns: 1fr 1fr; }
+
+  .forecast-grid { grid-template-columns: repeat(2, 1fr); }
+
+  .form-row { flex-direction: column; }
+  .form-row > * { min-width: unset; }
+
+  .inline-form { flex-direction: column; align-items: stretch; }
+  .inline-form input,
+  .inline-form select,
+  .inline-form button { width: 100%; }
+
+  .map-container { height: calc(100vh - 160px); }
+
+  .weather-stats { gap: 1rem; }
+
+  .page-content { padding: 0.75rem; }
+
+  .tab-bar { padding: 0 0.5rem; }
+}

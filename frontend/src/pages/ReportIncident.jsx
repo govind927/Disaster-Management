@@ -63,7 +63,7 @@ export default function ReportIncident() {
               value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} />
           </div>
 
-          <div style={s.row}>
+          <div className="form-row">
             <div style={{ ...s.field, flex: 1 }}>
               <label style={s.label}>Type</label>
               <select style={s.input} value={form.type}
@@ -111,7 +111,7 @@ export default function ReportIncident() {
               style={{ fontSize: 14 }} />
           </div>
 
-          <div style={s.row}>
+          <div className="form-row">
             <button type="button" onClick={() => navigate('/dashboard')} style={s.cancelBtn}>
               Cancel
             </button>

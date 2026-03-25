@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 
 const LIBRARIES = ['visualization'];
-const MAP_STYLE  = { width: '100%', height: 'calc(100vh - 120px)' };
+const MAP_STYLE = { width: '100%', height: '100%' };
 const SEVERITY_COLOR = { low: '#22c55e', medium: '#f59e0b', high: '#ef4444' };
 const STATUS_COLOR   = { pending: '#f59e0b', active: '#3b82f6', resolved: '#22c55e' };
 const TYPE_ICONS = {
@@ -135,8 +135,8 @@ export default function MapView() {
       )}
 
       {/* Filter bar */}
-      <div style={s.filterBar}>
-        <div style={s.filterGroup}>
+      <div className="filter-bar">
+        <div className="filter-group">
           <span style={s.filterLabel}>Type:</span>
           {['all','flood','fire','earthquake','landslide','cyclone','other'].map(t => (
             <button key={t} style={{ ...s.filterBtn, ...(filter.type === t ? s.filterActive : {}) }}
@@ -146,7 +146,7 @@ export default function MapView() {
           ))}
         </div>
 
-        <div style={s.filterGroup}>
+        <div className="filter-group">
           <span style={s.filterLabel}>Severity:</span>
           {['all','low','medium','high'].map(sv => (
             <button key={sv} style={{ ...s.filterBtn, ...(filter.severity === sv ? s.filterActive : {}) }}
@@ -156,7 +156,7 @@ export default function MapView() {
           ))}
         </div>
 
-        <div style={s.filterGroup}>
+        <div className="filter-group">
           <span style={s.filterLabel}>Status:</span>
           {['all','pending','active','resolved'].map(st => (
             <button key={st} style={{ ...s.filterBtn, ...(filter.status === st ? s.filterActive : {}) }}
@@ -178,97 +178,102 @@ export default function MapView() {
       </div>
 
       {/* Map */}
-      <GoogleMap
-        mapContainerStyle={MAP_STYLE}
-        center={mapCenter}
-        zoom={userLocation ? 12 : 5}
-        onLoad={onMapLoad}
-        options={{
-          streetViewControl: false,
-          mapTypeControl: true,
-          fullscreenControl: true,
-          zoomControl: true,
-        }}>
+<div className="map-container">
+  <GoogleMap
+    mapContainerStyle={MAP_STYLE}
+    center={mapCenter}
+    zoom={userLocation ? 12 : 5}
+    onLoad={onMapLoad}
+    options={{
+      streetViewControl: false,
+      mapTypeControl: true,
+      fullscreenControl: true,
+      zoomControl: true,
+    }}
+  >
 
-        {/* User's location — blue dot */}
-        {userLocation && (
-          <Marker
-            position={userLocation}
-            icon={{
-              path: window.google.maps.SymbolPath.CIRCLE,
-              scale: 10,
-              fillColor: '#3b82f6',
-              fillOpacity: 1,
-              strokeColor: '#fff',
-              strokeWeight: 3,
-            }}
-            title="Your location"
-          />
-        )}
+    {/* User's location */}
+    {userLocation && (
+      <Marker
+        position={userLocation}
+        icon={{
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: '#3b82f6',
+          fillOpacity: 1,
+          strokeColor: '#fff',
+          strokeWeight: 3,
+        }}
+        title="Your location"
+      />
+    )}
 
-        {/* Incident markers */}
-        {filtered.map(inc => (
-          <Marker
-            key={inc.id}
-            position={{ lat: parseFloat(inc.lat), lng: parseFloat(inc.lng) }}
-            onClick={() => setSelected(inc)}
-            icon={{
-              path: window.google.maps.SymbolPath.CIRCLE,
-              scale: inc.severity === 'high' ? 14 : inc.severity === 'medium' ? 11 : 8,
-              fillColor: SEVERITY_COLOR[inc.severity],
-              fillOpacity: inc.status === 'resolved' ? 0.4 : 0.9,
-              strokeColor: '#fff',
-              strokeWeight: 2,
-            }}
-          />
-        ))}
+    {/* Incident markers */}
+    {filtered.map(inc => (
+      <Marker
+        key={inc.id}
+        position={{ lat: parseFloat(inc.lat), lng: parseFloat(inc.lng) }}
+        onClick={() => setSelected(inc)}
+        icon={{
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: inc.severity === 'high' ? 14 : inc.severity === 'medium' ? 11 : 8,
+          fillColor: SEVERITY_COLOR[inc.severity],
+          fillOpacity: inc.status === 'resolved' ? 0.4 : 0.9,
+          strokeColor: '#fff',
+          strokeWeight: 2,
+        }}
+      />
+    ))}
 
-        {/* Info window on marker click */}
-        {selected && (
-          <InfoWindow
-            position={{ lat: parseFloat(selected.lat), lng: parseFloat(selected.lng) }}
-            onCloseClick={() => setSelected(null)}>
-            <div style={s.infoWindow}>
-              {selected.image_url && (
-                <img
-                  src={`${import.meta.env.VITE_BACKEND_URL}${selected.image_url}`}
-                  alt="incident"
-                  style={s.infoImg}
-                />
-              )}
-              <div style={s.infoType}>
-                {TYPE_ICONS[selected.type]} {selected.type.toUpperCase()}
-              </div>
-              <h4 style={s.infoTitle}>{selected.title}</h4>
-              {selected.description && (
-                <p style={s.infoDesc}>{selected.description}</p>
-              )}
-              <div style={s.infoBadges}>
-                <span style={{ ...s.badge, background: SEVERITY_COLOR[selected.severity] }}>
-                  {selected.severity}
-                </span>
-                <span style={{ ...s.badge, background: STATUS_COLOR[selected.status] }}>
-                  {selected.status}
-                </span>
-              </div>
-              <p style={s.infoReporter}>
-                Reported by: {selected.reporter_name}
-              </p>
-              <p style={s.infoDate}>
-                {new Date(selected.created_at).toLocaleString()}
-              </p>
-            </div>
-          </InfoWindow>
-        )}
+    {/* Info window */}
+    {selected && (
+      <InfoWindow
+        position={{ lat: parseFloat(selected.lat), lng: parseFloat(selected.lng) }}
+        onCloseClick={() => setSelected(null)}
+      >
+        <div style={s.infoWindow}>
+          {selected.image_url && (
+            <img
+              src={`${import.meta.env.VITE_BACKEND_URL}${selected.image_url}`}
+              alt="incident"
+              style={s.infoImg}
+            />
+          )}
+          <div style={s.infoType}>
+            {TYPE_ICONS[selected.type]} {selected.type.toUpperCase()}
+          </div>
+          <h4 style={s.infoTitle}>{selected.title}</h4>
+          {selected.description && (
+            <p style={s.infoDesc}>{selected.description}</p>
+          )}
+          <div style={s.infoBadges}>
+            <span style={{ ...s.badge, background: SEVERITY_COLOR[selected.severity] }}>
+              {selected.severity}
+            </span>
+            <span style={{ ...s.badge, background: STATUS_COLOR[selected.status] }}>
+              {selected.status}
+            </span>
+          </div>
+          <p style={s.infoReporter}>
+            Reported by: {selected.reporter_name}
+          </p>
+          <p style={s.infoDate}>
+            {new Date(selected.created_at).toLocaleString()}
+          </p>
+        </div>
+      </InfoWindow>
+    )}
 
-        {/* Heatmap layer */}
-        {showHeatmap && heatmapData.length > 0 && (
-          <HeatmapLayer
-            data={heatmapData}
-            options={{ radius: 40, opacity: 0.7 }}
-          />
-        )}
-      </GoogleMap>
+    {/* Heatmap */}
+    {showHeatmap && heatmapData.length > 0 && (
+      <HeatmapLayer
+        data={heatmapData}
+        options={{ radius: 40, opacity: 0.7 }}
+      />
+    )}
+
+  </GoogleMap>
+</div>
 
       {/* Legend */}
       <div style={s.legend}>

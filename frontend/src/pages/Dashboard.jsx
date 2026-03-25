@@ -28,9 +28,9 @@ export default function Dashboard() {
 
   return (
     <div style={s.page}>
-      <div style={s.navbar}>
-        <h2 style={s.brand}>Disaster Management</h2>
-        <div style={s.navRight}>
+      <div className="navbar">
+        <h2 className="navbar-brand">Disaster Management</h2>
+        <div className="navbar-right">
           <span style={s.welcome}>Hello, {user?.name}</span>
           <button onClick={() => navigate('/report')} style={s.reportBtn}>Report Incident</button>
           <button onClick={() => navigate('/map')} style={s.mapBtn}>View Map</button>
@@ -39,7 +39,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div style={s.content}>
+      <div className="page-content">
         
         {/* Weather Alert Banner */}
         {!alertDismissed && weatherAlert && (
@@ -59,7 +59,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div style={s.grid}>
+        <div className="incident-grid">
           {incidents.map(inc => (
             <div key={inc.id} style={s.card}>
               {inc.image_url && (
