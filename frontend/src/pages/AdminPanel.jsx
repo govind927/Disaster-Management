@@ -13,31 +13,42 @@ const RESOURCE_ICONS = {
 };
 
 export default function AdminPanel() {
-  const [tab, setTab]             = useState('overview');
-  const [stats, setStats]         = useState(null);
+  const [tab, setTab] = useState("overview");
+  const [stats, setStats] = useState(null);
   const [incidents, setIncidents] = useState([]);
   const [resources, setResources] = useState([]);
-  const [users, setUsers]         = useState([]);
-  const [alerts, setAlerts]       = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [newResource, setNewResource] = useState({ name: '', type: 'ambulance', quantity: 1 });
-  const [newAlert, setNewAlert]   = useState({ title: '', message: '', severity: 'medium' });
+  const [users, setUsers] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newResource, setNewResource] = useState({
+    name: "",
+    type: "ambulance",
+    quantity: 1,
+  });
+  const [newAlert, setNewAlert] = useState({
+    title: "",
+    message: "",
+    severity: "medium",
+  });
   const [assignModal, setAssignModal] = useState(null);
-  const [selectedResource, setSelectedResource] = useState('');
-  const { user, logout }          = useAuth();
-  const { socket }                = useSocket();
-  const navigate                  = useNavigate();
+  const [selectedResource, setSelectedResource] = useState("");
+  const { user, logout } = useAuth();
+  const { socket } = useSocket();
+  const navigate = useNavigate();
+  const [assignments, setAssignments] = useState({});
 
   // Load all data
   const loadData = async () => {
     try {
-      const [statsRes, incRes, resRes, usersRes, alertsRes] = await Promise.all([
-        api.get('/admin/stats'),
-        api.get('/admin/incidents'),
-        api.get('/resources'),
-        api.get('/admin/users'),
-        api.get('/alerts'),
-      ]);
+      const [statsRes, incRes, resRes, usersRes, alertsRes] = await Promise.all(
+        [
+          api.get("/admin/stats"),
+          api.get("/admin/incidents"),
+          api.get("/resources"),
+          api.get("/admin/users"),
+          api.get("/alerts"),
+        ],
+      );
       setStats(statsRes.data);
       setIncidents(incRes.data);
       setResources(resRes.data);
@@ -50,22 +61,24 @@ export default function AdminPanel() {
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+  }, []);
 
   // Socket real-time updates
   useEffect(() => {
     if (!socket) return;
-    socket.on('new_incident',     (inc)  => setIncidents(p => [inc, ...p]));
-    socket.on('incident_updated', ({ id, status }) =>
-      setIncidents(p => p.map(i => i.id === id ? { ...i, status } : i))
+    socket.on("new_incident", (inc) => setIncidents((p) => [inc, ...p]));
+    socket.on("incident_updated", ({ id, status }) =>
+      setIncidents((p) => p.map((i) => (i.id === id ? { ...i, status } : i))),
     );
-    socket.on('resource_assigned', () => loadData());
-    socket.on('resource_released', () => loadData());
+    socket.on("resource_assigned", () => loadData());
+    socket.on("resource_released", () => loadData());
     return () => {
-      socket.off('new_incident');
-      socket.off('incident_updated');
-      socket.off('resource_assigned');
-      socket.off('resource_released');
+      socket.off("new_incident");
+      socket.off("incident_updated");
+      socket.off("resource_assigned");
+      socket.off("resource_released");
     };
   }, [socket]);
 
@@ -73,26 +86,46 @@ export default function AdminPanel() {
   const updateStatus = async (id, status) => {
     try {
       await api.put(`/incidents/${id}/status`, { status });
-      setIncidents(p => p.map(i => i.id === id ? { ...i, status } : i));
+      setIncidents((p) => p.map((i) => (i.id === id ? { ...i, status } : i)));
       loadData();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update status');
+      alert(err.response?.data?.message || "Failed to update status");
+    }
+  };
+
+  const loadAssignments = async (incidentId) => {
+    try {
+      const res = await api.get(`/resources/assignments/${incidentId}`);
+      setAssignments((prev) => ({ ...prev, [incidentId]: res.data }));
+    } catch (err) {
+      console.error(err);
     }
   };
 
   // Assign resource to incident
   const assignResource = async () => {
-    if (!selectedResource) return alert('Select a resource');
+    if (!selectedResource) return alert("Select a resource");
     try {
-      await api.post('/resources/assign', {
+      await api.post("/resources/assign", {
         incident_id: assignModal.id,
         resource_id: selectedResource,
       });
       setAssignModal(null);
-      setSelectedResource('');
+      setSelectedResource("");
       loadData();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to assign resource');
+      alert(err.response?.data?.message || "Failed to assign resource");
+    }
+  };
+
+  // Release a deployed resource
+  const releaseResource = async (assignmentId, resourceId) => {
+    if (!window.confirm("Release this resource back to available?")) return;
+    try {
+      await api.post(`/resources/release/${assignmentId}`);
+      loadData();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to release resource");
     }
   };
 
@@ -100,11 +133,11 @@ export default function AdminPanel() {
   const createResource = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/resources', newResource);
-      setNewResource({ name: '', type: 'ambulance', quantity: 1 });
+      await api.post("/resources", newResource);
+      setNewResource({ name: "", type: "ambulance", quantity: 1 });
       loadData();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to create resource');
+      alert(err.response?.data?.message || "Failed to create resource");
     }
   };
 
@@ -112,33 +145,33 @@ export default function AdminPanel() {
   const createAlert = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/alerts', newAlert);
-      setNewAlert({ title: '', message: '', severity: 'medium' });
+      await api.post("/alerts", newAlert);
+      setNewAlert({ title: "", message: "", severity: "medium" });
       loadData();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to create alert');
+      alert(err.response?.data?.message || "Failed to create alert");
     }
   };
 
   // Delete alert
   const deleteAlert = async (id) => {
-    if (!window.confirm('Delete this alert?')) return;
+    if (!window.confirm("Delete this alert?")) return;
     try {
       await api.delete(`/alerts/${id}`);
-      setAlerts(p => p.filter(a => a.id !== id));
+      setAlerts((p) => p.filter((a) => a.id !== id));
     } catch (err) {
-      alert('Failed to delete alert');
+      alert("Failed to delete alert");
     }
   };
 
   // Delete resource
   const deleteResource = async (id) => {
-    if (!window.confirm('Delete this resource?')) return;
+    if (!window.confirm("Delete this resource?")) return;
     try {
       await api.delete(`/resources/${id}`);
       loadData();
     } catch (err) {
-      alert('Failed to delete resource');
+      alert("Failed to delete resource");
     }
   };
 
@@ -146,65 +179,106 @@ export default function AdminPanel() {
   const updateRole = async (id, role) => {
     try {
       await api.put(`/admin/users/${id}/role`, { role });
-      setUsers(p => p.map(u => u.id === id ? { ...u, role } : u));
+      setUsers((p) => p.map((u) => (u.id === id ? { ...u, role } : u)));
     } catch (err) {
-      alert('Failed to update role');
+      alert("Failed to update role");
     }
   };
 
   if (loading) return <div style={s.loading}>Loading admin panel...</div>;
 
   const tabs = [
-    { key: 'overview',   label: 'Overview' },
-    { key: 'incidents',  label: `Incidents (${incidents.length})` },
-    { key: 'resources',  label: `Resources (${resources.length})` },
-    { key: 'alerts',     label: `Alerts (${alerts.length})` },
-    { key: 'users',      label: `Users (${users.length})` },
+    { key: "overview", label: "Overview" },
+    { key: "incidents", label: `Incidents (${incidents.length})` },
+    { key: "resources", label: `Resources (${resources.length})` },
+    { key: "alerts", label: `Alerts (${alerts.length})` },
+    { key: "users", label: `Users (${users.length})` },
   ];
 
   return (
-    <div style={s.page}>:<LiveStatusBar />
-
+    <div style={s.page}>
+      :<LiveStatusBar />
       {/* Navbar */}
       <div style={s.navbar}>
         <h2 style={s.brand}>Admin Control Center</h2>
         <div className="navbar-right">
-          <button onClick={() => navigate('/dashboard')} style={s.navBtn}>Dashboard</button>
-          <button onClick={() => navigate('/map')}       style={s.navBtn}>Live Map</button>
+          <button onClick={() => navigate("/dashboard")} style={s.navBtn}>
+            Dashboard
+          </button>
+          <button onClick={() => navigate("/map")} style={s.navBtn}>
+            Live Map
+          </button>
           <span style={s.adminBadge}>ADMIN</span>
           <span style={s.adminName}>{user?.name}</span>
-          <button onClick={() => { logout(); navigate('/login'); }} style={s.logoutBtn}>
+          <button
+            onClick={() => {
+              logout();
+              navigate("/login");
+            }}
+            style={s.logoutBtn}
+          >
             Logout
           </button>
         </div>
       </div>
-
       {/* Tabs */}
       <div className="tab-bar">
-        {tabs.map(t => (
-          <button key={t.key}
+        {tabs.map((t) => (
+          <button
+            key={t.key}
             style={{ ...s.tabBtn, ...(tab === t.key ? s.tabActive : {}) }}
-            onClick={() => setTab(t.key)}>
+            onClick={() => setTab(t.key)}
+          >
             {t.label}
           </button>
         ))}
       </div>
-
       <div className="page-content">
-
         {/* ─── OVERVIEW TAB ─── */}
-        {tab === 'overview' && stats && (
+        {tab === "overview" && stats && (
           <div>
             <div className="stats-grid">
               {[
-                { label: 'Total Incidents', value: stats.incidents.total,    color: '#3b82f6' },
-                { label: 'Pending',         value: stats.incidents.pending,  color: '#f59e0b' },
-                { label: 'Active',          value: stats.incidents.active,   color: '#ef4444' },
-                { label: 'Resolved',        value: stats.incidents.resolved, color: '#22c55e' },
-                { label: 'Total Users',     value: stats.users.total,        color: '#8b5cf6' },
-                { label: 'Resources',       value: stats.resources.total,    color: '#06b6d4' },
-                { label: 'Deployed',        value: stats.resources.deployed, color: '#f97316' },
-                { label: 'Active Alerts',   value: stats.alerts.active,      color: '#ef4444' },
+                {
+                  label: "Total Incidents",
+                  value: stats.incidents.total,
+                  color: "#3b82f6",
+                },
+                {
+                  label: "Pending",
+                  value: stats.incidents.pending,
+                  color: "#f59e0b",
+                },
+                {
+                  label: "Active",
+                  value: stats.incidents.active,
+                  color: "#ef4444",
+                },
+                {
+                  label: "Resolved",
+                  value: stats.incidents.resolved,
+                  color: "#22c55e",
+                },
+                {
+                  label: "Total Users",
+                  value: stats.users.total,
+                  color: "#8b5cf6",
+                },
+                {
+                  label: "Resources",
+                  value: stats.resources.total,
+                  color: "#06b6d4",
+                },
+                {
+                  label: "Deployed",
+                  value: stats.resources.deployed,
+                  color: "#f97316",
+                },
+                {
+                  label: "Active Alerts",
+                  value: stats.alerts.active,
+                  color: "#ef4444",
+                },
               ].map(({ label, value, color }) => (
                 <div key={label} style={s.statCard}>
                   <p style={s.statValue(color)}>{value}</p>
@@ -219,31 +293,61 @@ export default function AdminPanel() {
               <table style={s.table}>
                 <thead>
                   <tr>
-                    {['Title','Type','Severity','Status','Reporter','Date','Action'].map(h => (
-                      <th key={h} style={s.th}>{h}</th>
+                    {[
+                      "Title",
+                      "Type",
+                      "Severity",
+                      "Status",
+                      "Reporter",
+                      "Date",
+                      "Action",
+                    ].map((h) => (
+                      <th key={h} style={s.th}>
+                        {h}
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {incidents.slice(0, 5).map(inc => (
+                  {incidents.slice(0, 5).map((inc) => (
                     <tr key={inc.id} style={s.tr}>
                       <td style={s.td}>{inc.title}</td>
-                      <td style={s.td}><span style={s.typePill}>{inc.type}</span></td>
                       <td style={s.td}>
-                        <span style={{ ...s.pill, background: SEVERITY_COLOR[inc.severity] }}>
+                        <span style={s.typePill}>{inc.type}</span>
+                      </td>
+                      <td style={s.td}>
+                        <span
+                          style={{
+                            ...s.pill,
+                            background: SEVERITY_COLOR[inc.severity],
+                          }}
+                        >
                           {inc.severity}
                         </span>
                       </td>
                       <td style={s.td}>
-                        <span style={{ ...s.pill, background: STATUS_COLOR[inc.status] }}>
+                        <span
+                          style={{
+                            ...s.pill,
+                            background: STATUS_COLOR[inc.status],
+                          }}
+                        >
                           {inc.status}
                         </span>
                       </td>
                       <td style={s.td}>{inc.reporter_name}</td>
-                      <td style={s.td}>{new Date(inc.created_at).toLocaleDateString()}</td>
                       <td style={s.td}>
-                        <button onClick={() => { setTab('incidents'); }}
-                          style={s.actionBtn}>Manage</button>
+                        {new Date(inc.created_at).toLocaleDateString()}
+                      </td>
+                      <td style={s.td}>
+                        <button
+                          onClick={() => {
+                            setTab("incidents");
+                          }}
+                          style={s.actionBtn}
+                        >
+                          Manage
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -254,49 +358,82 @@ export default function AdminPanel() {
         )}
 
         {/* ─── INCIDENTS TAB ─── */}
-        {tab === 'incidents' && (
+        {tab === "incidents" && (
           <div>
             <h3 style={s.sectionTitle}>All Incidents</h3>
             <div className="table-wrap">
               <table style={s.table}>
                 <thead>
                   <tr>
-                    {['ID','Title','Type','Severity','Status','Reporter','Date','Status Action','Assign'].map(h => (
-                      <th key={h} style={s.th}>{h}</th>
+                    {[
+                      "ID",
+                      "Title",
+                      "Type",
+                      "Severity",
+                      "Status",
+                      "Reporter",
+                      "Date",
+                      "Status Action",
+                      "Assign",
+                    ].map((h) => (
+                      <th key={h} style={s.th}>
+                        {h}
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {incidents.map(inc => (
-                    <tr key={inc.id} style={{ ...s.tr, background: STATUS_BG[inc.status] }}>
+                  {incidents.map((inc) => (
+                    <tr
+                      key={inc.id}
+                      style={{ ...s.tr, background: STATUS_BG[inc.status] }}
+                    >
                       <td style={s.td}>#{inc.id}</td>
                       <td style={{ ...s.td, maxWidth: 160 }}>{inc.title}</td>
-                      <td style={s.td}><span style={s.typePill}>{inc.type}</span></td>
                       <td style={s.td}>
-                        <span style={{ ...s.pill, background: SEVERITY_COLOR[inc.severity] }}>
+                        <span style={s.typePill}>{inc.type}</span>
+                      </td>
+                      <td style={s.td}>
+                        <span
+                          style={{
+                            ...s.pill,
+                            background: SEVERITY_COLOR[inc.severity],
+                          }}
+                        >
                           {inc.severity}
                         </span>
                       </td>
                       <td style={s.td}>
-                        <span style={{ ...s.pill, background: STATUS_COLOR[inc.status] }}>
+                        <span
+                          style={{
+                            ...s.pill,
+                            background: STATUS_COLOR[inc.status],
+                          }}
+                        >
                           {inc.status}
                         </span>
                       </td>
                       <td style={s.td}>{inc.reporter_name}</td>
-                      <td style={s.td}>{new Date(inc.created_at).toLocaleDateString()}</td>
+                      <td style={s.td}>
+                        {new Date(inc.created_at).toLocaleDateString()}
+                      </td>
                       <td style={s.td}>
                         <select
                           value={inc.status}
-                          onChange={e => updateStatus(inc.id, e.target.value)}
-                          style={s.select}>
+                          onChange={(e) => updateStatus(inc.id, e.target.value)}
+                          style={s.select}
+                        >
                           <option value="pending">Pending</option>
                           <option value="active">Active</option>
                           <option value="resolved">Resolved</option>
                         </select>
                       </td>
                       <td style={s.td}>
-                        {inc.status !== 'resolved' && (
-                          <button onClick={() => setAssignModal(inc)} style={s.assignBtn}>
+                        {inc.status !== "resolved" && (
+                          <button
+                            onClick={() => setAssignModal(inc)}
+                            style={s.assignBtn}
+                          >
                             Assign
                           </button>
                         )}
@@ -310,50 +447,88 @@ export default function AdminPanel() {
         )}
 
         {/* ─── RESOURCES TAB ─── */}
-        {tab === 'resources' && (
+        {tab === "resources" && (
           <div>
             {/* Add Resource Form */}
             <div style={s.formCard}>
               <h3 style={s.sectionTitle}>Add New Resource</h3>
               <form onSubmit={createResource} className="inline-form">
-                <input style={s.input} placeholder="Resource name" required
+                <input
+                  style={s.input}
+                  placeholder="Resource name"
+                  required
                   value={newResource.name}
-                  onChange={e => setNewResource(p => ({ ...p, name: e.target.value }))} />
-                <select style={s.input} value={newResource.type}
-                  onChange={e => setNewResource(p => ({ ...p, type: e.target.value }))}>
-                  {['ambulance','shelter','food','rescue_team','medical','fire_brigade'].map(t => (
-                  <option key={t} value={t}>{t.replace('_', ' ')}</option>))}
+                  onChange={(e) =>
+                    setNewResource((p) => ({ ...p, name: e.target.value }))
+                  }
+                />
+                <select
+                  style={s.input}
+                  value={newResource.type}
+                  onChange={(e) =>
+                    setNewResource((p) => ({ ...p, type: e.target.value }))
+                  }
+                >
+                  {[
+                    "ambulance",
+                    "shelter",
+                    "food",
+                    "rescue_team",
+                    "medical",
+                    "fire_brigade",
+                  ].map((t) => (
+                    <option key={t} value={t}>
+                      {t.replace("_", " ")}
+                    </option>
+                  ))}
                 </select>
-                <input style={{ ...s.input, width: 80 }} type="number" min={1}
+                <input
+                  style={{ ...s.input, width: 80 }}
+                  type="number"
+                  min={1}
                   value={newResource.quantity}
-                  onChange={e => setNewResource(p => ({ ...p, quantity: e.target.value }))} />
-                <button type="submit" style={s.addBtn}>+ Add Resource</button>
+                  onChange={(e) =>
+                    setNewResource((p) => ({ ...p, quantity: e.target.value }))
+                  }
+                />
+                <button type="submit" style={s.addBtn}>
+                  + Add Resource
+                </button>
               </form>
             </div>
 
             {/* Resources List */}
             <h3 style={s.sectionTitle}>All Resources</h3>
             <div className="resource-grid">
-              {resources.map(r => (
+              {resources.map((r) => (
                 <div key={r.id} style={s.resourceCard}>
                   <div style={s.resourceTop}>
                     <span style={s.resourceIcon}>{RESOURCE_ICONS[r.type]}</span>
-                    <span style={{
-                      ...s.statusDot,
-                      background: r.status === 'available' ? '#22c55e' : '#f59e0b'
-                    }}/>
+                    <span
+                      style={{
+                        ...s.statusDot,
+                        background:
+                          r.status === "available" ? "#22c55e" : "#f59e0b",
+                      }}
+                    />
                   </div>
                   <p style={s.resourceName}>{r.name}</p>
-                  <p style={s.resourceType}>{r.type.replace('_', ' ')}</p>
+                  <p style={s.resourceType}>{r.type.replace("_", " ")}</p>
                   <p style={s.resourceQty}>Qty: {r.quantity}</p>
-                  <span style={{
-                    ...s.pill,
-                    background: r.status === 'available' ? '#22c55e' : '#f59e0b',
-                    fontSize: 11,
-                  }}>
+                  <span
+                    style={{
+                      ...s.pill,
+                      background:
+                        r.status === "available" ? "#22c55e" : "#f59e0b",
+                      fontSize: 11,
+                    }}
+                  >
                     {r.status}
                   </span>
-                  <button onClick={() => deleteResource(r.id)} style={s.deleteBtn}>
+                  <button
+                    onClick={() => deleteResource(r.id)}
+                    style={s.deleteBtn}
+                  >
                     Delete
                   </button>
                 </div>
@@ -363,28 +538,45 @@ export default function AdminPanel() {
         )}
 
         {/* ─── ALERTS TAB ─── */}
-        {tab === 'alerts' && (
+        {tab === "alerts" && (
           <div>
             {/* Create Alert Form */}
             <div style={s.formCard}>
               <h3 style={s.sectionTitle}>Create Manual Alert</h3>
               <form onSubmit={createAlert} style={s.alertForm}>
-                <input style={s.input} placeholder="Alert title" required
+                <input
+                  style={s.input}
+                  placeholder="Alert title"
+                  required
                   value={newAlert.title}
-                  onChange={e => setNewAlert(p => ({ ...p, title: e.target.value }))} />
-                <textarea style={{ ...s.input, minHeight: 80, resize: 'vertical' }}
+                  onChange={(e) =>
+                    setNewAlert((p) => ({ ...p, title: e.target.value }))
+                  }
+                />
+                <textarea
+                  style={{ ...s.input, minHeight: 80, resize: "vertical" }}
                   placeholder="Alert message..."
                   value={newAlert.message}
-                  onChange={e => setNewAlert(p => ({ ...p, message: e.target.value }))} />
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <select style={s.input} value={newAlert.severity}
-                    onChange={e => setNewAlert(p => ({ ...p, severity: e.target.value }))}>
+                  onChange={(e) =>
+                    setNewAlert((p) => ({ ...p, message: e.target.value }))
+                  }
+                />
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <select
+                    style={s.input}
+                    value={newAlert.severity}
+                    onChange={(e) =>
+                      setNewAlert((p) => ({ ...p, severity: e.target.value }))
+                    }
+                  >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
                     <option value="critical">Critical</option>
                   </select>
-                  <button type="submit" style={s.addBtn}>Broadcast Alert</button>
+                  <button type="submit" style={s.addBtn}>
+                    Broadcast Alert
+                  </button>
                 </div>
               </form>
             </div>
@@ -393,22 +585,37 @@ export default function AdminPanel() {
             <h3 style={s.sectionTitle}>Active Alerts</h3>
             {alerts.length === 0 && <p style={s.muted}>No active alerts.</p>}
             <div style={s.alertsList}>
-              {alerts.map(a => (
+              {alerts.map((a) => (
                 <div key={a.id} style={s.alertRow}>
-                  <div style={{
-                    width: 8, borderRadius: 4, alignSelf: 'stretch', flexShrink: 0,
-                    background: SEVERITY_COLOR[a.severity] || '#6b7280',
-                  }}/>
+                  <div
+                    style={{
+                      width: 8,
+                      borderRadius: 4,
+                      alignSelf: "stretch",
+                      flexShrink: 0,
+                      background: SEVERITY_COLOR[a.severity] || "#6b7280",
+                    }}
+                  />
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 8 }}
+                    >
                       <span style={s.alertTitle}>{a.title}</span>
-                      <span style={{ ...s.pill, background: SEVERITY_COLOR[a.severity], fontSize: 11 }}>
+                      <span
+                        style={{
+                          ...s.pill,
+                          background: SEVERITY_COLOR[a.severity],
+                          fontSize: 11,
+                        }}
+                      >
                         {a.severity}
                       </span>
                       <span style={s.alertSource}>{a.source}</span>
                     </div>
                     <p style={s.alertMsg}>{a.message}</p>
-                    <p style={s.alertDate}>{new Date(a.created_at).toLocaleString()}</p>
+                    <p style={s.alertDate}>
+                      {new Date(a.created_at).toLocaleString()}
+                    </p>
                   </div>
                   <button onClick={() => deleteAlert(a.id)} style={s.deleteBtn}>
                     Delete
@@ -420,40 +627,58 @@ export default function AdminPanel() {
         )}
 
         {/* ─── USERS TAB ─── */}
-        {tab === 'users' && (
+        {tab === "users" && (
           <div>
             <h3 style={s.sectionTitle}>All Users</h3>
             <div className="table-wrap">
               <table style={s.table}>
                 <thead>
                   <tr>
-                    {['ID','Name','Email','Phone','Role','Incidents','Joined','Change Role'].map(h => (
-                      <th key={h} style={s.th}>{h}</th>
+                    {[
+                      "ID",
+                      "Name",
+                      "Email",
+                      "Phone",
+                      "Role",
+                      "Incidents",
+                      "Joined",
+                      "Change Role",
+                    ].map((h) => (
+                      <th key={h} style={s.th}>
+                        {h}
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map(u => (
+                  {users.map((u) => (
                     <tr key={u.id} style={s.tr}>
                       <td style={s.td}>#{u.id}</td>
                       <td style={s.td}>{u.name}</td>
                       <td style={s.td}>{u.email}</td>
-                      <td style={s.td}>{u.phone || '—'}</td>
+                      <td style={s.td}>{u.phone || "—"}</td>
                       <td style={s.td}>
-                        <span style={{
-                          ...s.pill,
-                          background: u.role === 'admin' ? '#8b5cf6' : '#3b82f6',
-                        }}>
+                        <span
+                          style={{
+                            ...s.pill,
+                            background:
+                              u.role === "admin" ? "#8b5cf6" : "#3b82f6",
+                          }}
+                        >
                           {u.role}
                         </span>
                       </td>
                       <td style={s.td}>{u.incident_count}</td>
-                      <td style={s.td}>{new Date(u.created_at).toLocaleDateString()}</td>
+                      <td style={s.td}>
+                        {new Date(u.created_at).toLocaleDateString()}
+                      </td>
                       <td style={s.td}>
                         {u.id !== user.id && (
-                          <select value={u.role}
-                            onChange={e => updateRole(u.id, e.target.value)}
-                            style={s.select}>
+                          <select
+                            value={u.role}
+                            onChange={(e) => updateRole(u.id, e.target.value)}
+                            style={s.select}
+                          >
                             <option value="citizen">Citizen</option>
                             <option value="admin">Admin</option>
                           </select>
@@ -467,31 +692,39 @@ export default function AdminPanel() {
           </div>
         )}
       </div>
-
       {/* ─── ASSIGN RESOURCE MODAL ─── */}
       {assignModal && (
         <div className="modal-overlay">
           <div className="modal">
-            <h3 style={{ margin: '0 0 4px', fontSize: 16 }}>Assign Resource</h3>
-            <p style={{ margin: '0 0 1rem', fontSize: 13, color: '#6b7280' }}>
+            <h3 style={{ margin: "0 0 4px", fontSize: 16 }}>Assign Resource</h3>
+            <p style={{ margin: "0 0 1rem", fontSize: 13, color: "#6b7280" }}>
               Incident: {assignModal.title}
             </p>
-            <select style={{ ...s.input, width: '100%', marginBottom: '1rem' }}
+            <select
+              style={{ ...s.input, width: "100%", marginBottom: "1rem" }}
               value={selectedResource}
-              onChange={e => setSelectedResource(e.target.value)}>
+              onChange={(e) => setSelectedResource(e.target.value)}
+            >
               <option value="">Select a resource...</option>
               {resources
-                .filter(r => r.status === 'available')
-                .map(r => (
+                .filter((r) => r.status === "available")
+                .map((r) => (
                   <option key={r.id} value={r.id}>
                     {RESOURCE_ICONS[r.type]} {r.name} (qty: {r.quantity})
                   </option>
                 ))}
             </select>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={assignResource} style={s.addBtn}>Confirm Assign</button>
-              <button onClick={() => { setAssignModal(null); setSelectedResource(''); }}
-                style={s.cancelBtn}>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={assignResource} style={s.addBtn}>
+                Confirm Assign
+              </button>
+              <button
+                onClick={() => {
+                  setAssignModal(null);
+                  setSelectedResource("");
+                }}
+                style={s.cancelBtn}
+              >
                 Cancel
               </button>
             </div>
