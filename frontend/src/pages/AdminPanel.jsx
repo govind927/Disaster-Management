@@ -3,6 +3,7 @@ import { useNavigate }         from 'react-router-dom';
 import { useAuth }             from '../context/AuthContext';
 import { useSocket }           from '../context/SocketContext';
 import api                     from '../api/axios';
+import LiveStatusBar from '../components/LiveStatusBar';
 
 const SEVERITY_COLOR = { low: '#22c55e', medium: '#f59e0b', high: '#ef4444' };
 const STATUS_COLOR   = { pending: '#f59e0b', active: '#3b82f6', resolved: '#22c55e' };
@@ -162,7 +163,7 @@ export default function AdminPanel() {
   ];
 
   return (
-    <div style={s.page}>
+    <div style={s.page}>:<LiveStatusBar />
 
       {/* Navbar */}
       <div style={s.navbar}>

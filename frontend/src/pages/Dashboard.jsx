@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useWeatherAlerts } from '../hooks/useWeatherAlerts'; 
 import AlertBanner from '../components/AlertBanner';
 import api from '../api/axios';
+import LiveStatusBar from '../components/LiveStatusBar';
 
 const severityColor = { low: '#22c55e', medium: '#f59e0b', high: '#ef4444' };
 const statusColor   = { pending: '#f59e0b', active: '#3b82f6', resolved: '#22c55e' };
@@ -27,7 +28,7 @@ export default function Dashboard() {
   const handleLogout = () => { logout(); navigate('/login'); };
 
   return (
-    <div style={s.page}>
+    <div style={s.page}>:<LiveStatusBar />
       <div className="navbar">
         <h2 className="navbar-brand">Disaster Management</h2>
         <div className="navbar-right">
