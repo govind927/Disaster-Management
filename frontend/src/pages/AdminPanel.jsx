@@ -1,15 +1,28 @@
-import { useEffect, useState } from 'react';
-import { useNavigate }         from 'react-router-dom';
-import { useAuth }             from '../context/AuthContext';
-import { useSocket }           from '../context/SocketContext';
-import api                     from '../api/axios';
-import LiveStatusBar from '../components/LiveStatusBar';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { useSocket } from "../context/SocketContext";
+import LiveStatusBar from "../components/LiveStatusBar";
+import api from "../api/axios";
 
-const SEVERITY_COLOR = { low: '#22c55e', medium: '#f59e0b', high: '#ef4444' };
-const STATUS_COLOR   = { pending: '#f59e0b', active: '#3b82f6', resolved: '#22c55e' };
-const STATUS_BG      = { pending: '#fffbeb', active: '#eff6ff', resolved: '#f0fdf4' };
+const SEVERITY_COLOR = { low: "#22c55e", medium: "#f59e0b", high: "#ef4444" };
+const STATUS_COLOR = {
+  pending: "#f59e0b",
+  active: "#3b82f6",
+  resolved: "#22c55e",
+};
+const STATUS_BG = {
+  pending: "#fffbeb",
+  active: "#eff6ff",
+  resolved: "#f0fdf4",
+};
 const RESOURCE_ICONS = {
-  ambulance: '🚑', shelter: '🏠', food: '🍱', rescue_team: '🪖', medical: '💊', fire_brigade: '🚒',
+  ambulance: "🚑",
+  shelter: "🏠",
+  food: "🍱",
+  rescue_team: "🪖",
+  medical: "💊",
+  fire_brigade: "🚒",
 };
 
 export default function AdminPanel() {
@@ -20,6 +33,7 @@ export default function AdminPanel() {
   const [users, setUsers] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [assignments, setAssignments] = useState({});
   const [newResource, setNewResource] = useState({
     name: "",
     type: "ambulance",
@@ -35,9 +49,7 @@ export default function AdminPanel() {
   const { user, logout } = useAuth();
   const { socket } = useSocket();
   const navigate = useNavigate();
-  const [assignments, setAssignments] = useState({});
 
-  // Load all data
   const loadData = async () => {
     try {
       const [statsRes, incRes, resRes, usersRes, alertsRes] = await Promise.all(
@@ -65,7 +77,6 @@ export default function AdminPanel() {
     loadData();
   }, []);
 
-  // Socket real-time updates
   useEffect(() => {
     if (!socket) return;
     socket.on("new_incident", (inc) => setIncidents((p) => [inc, ...p]));
@@ -82,6 +93,16 @@ export default function AdminPanel() {
     };
   }, [socket]);
 
+  // Load assignments for a specific incident
+  const loadAssignments = async (incidentId) => {
+    try {
+      const res = await api.get(`/resources/assignments/${incidentId}`);
+      setAssignments((prev) => ({ ...prev, [incidentId]: res.data }));
+    } catch (err) {
+      console.error("Load assignments error:", err);
+    }
+  };
+
   // Update incident status
   const updateStatus = async (id, status) => {
     try {
@@ -93,18 +114,9 @@ export default function AdminPanel() {
     }
   };
 
-  const loadAssignments = async (incidentId) => {
-    try {
-      const res = await api.get(`/resources/assignments/${incidentId}`);
-      setAssignments((prev) => ({ ...prev, [incidentId]: res.data }));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   // Assign resource to incident
   const assignResource = async () => {
-    if (!selectedResource) return alert("Select a resource");
+    if (!selectedResource) return alert("Please select a resource");
     try {
       await api.post("/resources/assign", {
         incident_id: assignModal.id,
@@ -113,16 +125,31 @@ export default function AdminPanel() {
       setAssignModal(null);
       setSelectedResource("");
       loadData();
+      // Refresh assignments for this incident
+      loadAssignments(assignModal.id);
     } catch (err) {
       alert(err.response?.data?.message || "Failed to assign resource");
     }
   };
 
-  // Release a deployed resource
-  const releaseResource = async (assignmentId, resourceId) => {
+  // Release a deployed resource back to available
+  const releaseResource = async (assignmentId, incidentId) => {
     if (!window.confirm("Release this resource back to available?")) return;
     try {
       await api.post(`/resources/release/${assignmentId}`);
+      loadData();
+      // Refresh the assignments list for this incident
+      loadAssignments(incidentId);
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to release resource");
+    }
+  };
+
+  // Release directly from resource card
+  const releaseResourceDirect = async (resourceId) => {
+    if (!window.confirm("Release this resource back to available?")) return;
+    try {
+      await api.post(`/resources/release-by-resource/${resourceId}`);
       loadData();
     } catch (err) {
       alert(err.response?.data?.message || "Failed to release resource");
@@ -197,11 +224,12 @@ export default function AdminPanel() {
 
   return (
     <div style={s.page}>
-      :<LiveStatusBar />
+      <LiveStatusBar />
+
       {/* Navbar */}
       <div style={s.navbar}>
         <h2 style={s.brand}>Admin Control Center</h2>
-        <div className="navbar-right">
+        <div style={s.navRight}>
           <button onClick={() => navigate("/dashboard")} style={s.navBtn}>
             Dashboard
           </button>
@@ -221,6 +249,7 @@ export default function AdminPanel() {
           </button>
         </div>
       </div>
+
       {/* Tabs */}
       <div className="tab-bar">
         {tabs.map((t) => (
@@ -233,6 +262,7 @@ export default function AdminPanel() {
           </button>
         ))}
       </div>
+
       <div className="page-content">
         {/* ─── OVERVIEW TAB ─── */}
         {tab === "overview" && stats && (
@@ -281,13 +311,11 @@ export default function AdminPanel() {
                 },
               ].map(({ label, value, color }) => (
                 <div key={label} style={s.statCard}>
-                  <p style={s.statValue(color)}>{value}</p>
+                  <p style={{ ...s.statValue, color }}>{value}</p>
                   <p style={s.statLabel}>{label}</p>
                 </div>
               ))}
             </div>
-
-            {/* Recent incidents preview */}
             <h3 style={s.sectionTitle}>Recent Incidents</h3>
             <div className="table-wrap">
               <table style={s.table}>
@@ -341,9 +369,7 @@ export default function AdminPanel() {
                       </td>
                       <td style={s.td}>
                         <button
-                          onClick={() => {
-                            setTab("incidents");
-                          }}
+                          onClick={() => setTab("incidents")}
                           style={s.actionBtn}
                         >
                           Manage
@@ -374,7 +400,7 @@ export default function AdminPanel() {
                       "Reporter",
                       "Date",
                       "Status Action",
-                      "Assign",
+                      "Resources",
                     ].map((h) => (
                       <th key={h} style={s.th}>
                         {h}
@@ -428,15 +454,67 @@ export default function AdminPanel() {
                           <option value="resolved">Resolved</option>
                         </select>
                       </td>
+
+                      {/* ── RESOURCES COLUMN ── */}
                       <td style={s.td}>
-                        {inc.status !== "resolved" && (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 6,
+                            minWidth: 180,
+                          }}
+                        >
+                          {/* Assign button — only for non-resolved */}
+                          {inc.status !== "resolved" && (
+                            <button
+                              onClick={() => {
+                                setAssignModal(inc);
+                                loadAssignments(inc.id);
+                              }}
+                              style={s.assignBtn}
+                            >
+                              + Assign Resource
+                            </button>
+                          )}
+
+                          {/* View Assigned — always visible */}
                           <button
-                            onClick={() => setAssignModal(inc)}
-                            style={s.assignBtn}
+                            onClick={() => loadAssignments(inc.id)}
+                            style={s.viewBtn}
                           >
-                            Assign
+                            View Assigned
                           </button>
-                        )}
+
+                          {/* Assignments list with Release buttons */}
+                          {assignments[inc.id] && (
+                            <div style={s.assignmentList}>
+                              {assignments[inc.id].length === 0 ? (
+                                <span
+                                  style={{ fontSize: 11, color: "#9ca3af" }}
+                                >
+                                  No resources assigned
+                                </span>
+                              ) : (
+                                assignments[inc.id].map((a) => (
+                                  <div key={a.id} style={s.assignmentItem}>
+                                    <span style={s.assignmentName}>
+                                      {RESOURCE_ICONS[a.type] || "📦"} {a.name}
+                                    </span>
+                                    <button
+                                      onClick={() =>
+                                        releaseResource(a.id, inc.id)
+                                      }
+                                      style={s.releaseBtn}
+                                    >
+                                      Release
+                                    </button>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -449,7 +527,6 @@ export default function AdminPanel() {
         {/* ─── RESOURCES TAB ─── */}
         {tab === "resources" && (
           <div>
-            {/* Add Resource Form */}
             <div style={s.formCard}>
               <h3 style={s.sectionTitle}>Add New Resource</h3>
               <form onSubmit={createResource} className="inline-form">
@@ -496,14 +573,14 @@ export default function AdminPanel() {
                 </button>
               </form>
             </div>
-
-            {/* Resources List */}
             <h3 style={s.sectionTitle}>All Resources</h3>
             <div className="resource-grid">
               {resources.map((r) => (
                 <div key={r.id} style={s.resourceCard}>
                   <div style={s.resourceTop}>
-                    <span style={s.resourceIcon}>{RESOURCE_ICONS[r.type]}</span>
+                    <span style={s.resourceIcon}>
+                      {RESOURCE_ICONS[r.type] || "📦"}
+                    </span>
                     <span
                       style={{
                         ...s.statusDot,
@@ -525,6 +602,16 @@ export default function AdminPanel() {
                   >
                     {r.status}
                   </span>
+                  {/* Release button — only shows when deployed */}
+                  {r.status === "deployed" && (
+                    <button
+                      onClick={() => releaseResourceDirect(r.id)}
+                      style={s.releaseCardBtn}
+                    >
+                      Release
+                    </button>
+                  )}
+
                   <button
                     onClick={() => deleteResource(r.id)}
                     style={s.deleteBtn}
@@ -540,10 +627,12 @@ export default function AdminPanel() {
         {/* ─── ALERTS TAB ─── */}
         {tab === "alerts" && (
           <div>
-            {/* Create Alert Form */}
             <div style={s.formCard}>
               <h3 style={s.sectionTitle}>Create Manual Alert</h3>
-              <form onSubmit={createAlert} style={s.alertForm}>
+              <form
+                onSubmit={createAlert}
+                style={{ display: "flex", flexDirection: "column", gap: 8 }}
+              >
                 <input
                   style={s.input}
                   placeholder="Alert title"
@@ -580,11 +669,15 @@ export default function AdminPanel() {
                 </div>
               </form>
             </div>
-
-            {/* Alerts List */}
             <h3 style={s.sectionTitle}>Active Alerts</h3>
             {alerts.length === 0 && <p style={s.muted}>No active alerts.</p>}
-            <div style={s.alertsList}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.75rem",
+              }}
+            >
               {alerts.map((a) => (
                 <div key={a.id} style={s.alertRow}>
                   <div
@@ -593,7 +686,13 @@ export default function AdminPanel() {
                       borderRadius: 4,
                       alignSelf: "stretch",
                       flexShrink: 0,
-                      background: SEVERITY_COLOR[a.severity] || "#6b7280",
+                      background:
+                        {
+                          low: "#22c55e",
+                          medium: "#f59e0b",
+                          high: "#f97316",
+                          critical: "#ef4444",
+                        }[a.severity] || "#6b7280",
                     }}
                   />
                   <div style={{ flex: 1 }}>
@@ -604,7 +703,12 @@ export default function AdminPanel() {
                       <span
                         style={{
                           ...s.pill,
-                          background: SEVERITY_COLOR[a.severity],
+                          background: {
+                            low: "#22c55e",
+                            medium: "#f59e0b",
+                            high: "#f97316",
+                            critical: "#ef4444",
+                          }[a.severity],
                           fontSize: 11,
                         }}
                       >
@@ -692,6 +796,7 @@ export default function AdminPanel() {
           </div>
         )}
       </div>
+
       {/* ─── ASSIGN RESOURCE MODAL ─── */}
       {assignModal && (
         <div className="modal-overlay">
@@ -710,7 +815,8 @@ export default function AdminPanel() {
                 .filter((r) => r.status === "available")
                 .map((r) => (
                   <option key={r.id} value={r.id}>
-                    {RESOURCE_ICONS[r.type]} {r.name} (qty: {r.quantity})
+                    {RESOURCE_ICONS[r.type] || "📦"} {r.name} (qty: {r.quantity}
+                    )
                   </option>
                 ))}
             </select>
@@ -736,56 +842,261 @@ export default function AdminPanel() {
 }
 
 const s = {
-  page:         { minHeight: '100vh', background: '#f3f4f6' },
-  loading:      { padding: '2rem', textAlign: 'center', color: '#6b7280' },
-  navbar:       { background: '#1e1b4b', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  brand:        { margin: 0, fontSize: 17, fontWeight: 600, color: '#fff' },
-  navRight:     { display: 'flex', alignItems: 'center', gap: '0.75rem' },
-  navBtn:       { padding: '6px 12px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, cursor: 'pointer', fontSize: 13 },
-  adminBadge:   { background: '#7c3aed', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 },
-  adminName:    { color: '#c7d2fe', fontSize: 13 },
-  logoutBtn:    { padding: '6px 12px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13 },
-  tabBar:       { background: '#fff', padding: '0 1.5rem', display: 'flex', gap: 4, borderBottom: '1px solid #e5e7eb', overflowX: 'auto' },
-  tabBtn:       { padding: '12px 16px', background: 'none', border: 'none', borderBottom: '2px solid transparent', cursor: 'pointer', fontSize: 14, color: '#6b7280', whiteSpace: 'nowrap' },
-  tabActive:    { borderBottomColor: '#3b82f6', color: '#1e40af', fontWeight: 600 },
-  content:      { maxWidth: 1200, margin: '0 auto', padding: '1.5rem 1rem' },
-  statsGrid:    { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '2rem' },
-  statCard:     { background: '#fff', borderRadius: 10, padding: '1rem', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' },
-  statValue:    (c) => ({ margin: '0 0 4px', fontSize: 32, fontWeight: 700, color: c }),
-  statLabel:    { margin: 0, fontSize: 12, color: '#6b7280' },
-  sectionTitle: { fontSize: 15, fontWeight: 600, color: '#111', margin: '0 0 1rem' },
-  tableWrap:    { overflowX: 'auto', borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' },
-  table:        { width: '100%', borderCollapse: 'collapse', background: '#fff', fontSize: 13 },
-  th:           { padding: '10px 12px', background: '#f8fafc', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '1px solid #e5e7eb', whiteSpace: 'nowrap' },
-  tr:           { borderBottom: '1px solid #f1f5f9' },
-  td:           { padding: '10px 12px', color: '#374151', verticalAlign: 'middle' },
-  pill:         { fontSize: 11, padding: '2px 8px', color: '#fff', borderRadius: 10, fontWeight: 500, display: 'inline-block' },
-  typePill:     { fontSize: 11, padding: '2px 8px', background: '#e0f2fe', color: '#0369a1', borderRadius: 10, fontWeight: 500 },
-  select:       { padding: '5px 8px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 12, cursor: 'pointer' },
-  actionBtn:    { padding: '4px 10px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12 },
-  assignBtn:    { padding: '4px 10px', background: '#8b5cf6', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12 },
-  deleteBtn:    { padding: '4px 10px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', borderRadius: 6, cursor: 'pointer', fontSize: 12, marginTop: 6 },
-  formCard:     { background: '#fff', borderRadius: 10, padding: '1.25rem', marginBottom: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' },
-  inlineForm:   { display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' },
-  alertForm:    { display: 'flex', flexDirection: 'column', gap: 8 },
-  input:        { padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, outline: 'none' },
-  addBtn:       { padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap' },
-  cancelBtn:    { padding: '8px 16px', background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: 8, cursor: 'pointer', fontSize: 14 },
-  resourceGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' },
-  resourceCard: { background: '#fff', borderRadius: 10, padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: 4 },
-  resourceTop:  { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  page: { minHeight: "100vh", background: "#f3f4f6" },
+  loading: { padding: "2rem", textAlign: "center", color: "#6b7280" },
+  navbar: {
+    background: "#1e1b4b",
+    padding: "0.75rem 1.5rem",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  brand: { margin: 0, fontSize: 17, fontWeight: 600, color: "#fff" },
+  navRight: { display: "flex", alignItems: "center", gap: "0.75rem" },
+  navBtn: {
+    padding: "6px 12px",
+    background: "rgba(255,255,255,0.1)",
+    color: "#fff",
+    border: "1px solid rgba(255,255,255,0.2)",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontSize: 13,
+  },
+  adminBadge: {
+    background: "#7c3aed",
+    color: "#fff",
+    padding: "3px 10px",
+    borderRadius: 20,
+    fontSize: 11,
+    fontWeight: 700,
+  },
+  adminName: { color: "#c7d2fe", fontSize: 13 },
+  logoutBtn: {
+    padding: "6px 12px",
+    background: "#ef4444",
+    color: "#fff",
+    border: "none",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontSize: 13,
+  },
+  tabBtn: {
+    padding: "12px 16px",
+    background: "none",
+    border: "none",
+    borderBottom: "2px solid transparent",
+    cursor: "pointer",
+    fontSize: 14,
+    color: "#6b7280",
+    whiteSpace: "nowrap",
+  },
+  tabActive: {
+    borderBottomColor: "#3b82f6",
+    color: "#1e40af",
+    fontWeight: 600,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: 600,
+    color: "#111",
+    margin: "0 0 1rem",
+  },
+  statCard: {
+    background: "#fff",
+    borderRadius: 10,
+    padding: "1rem",
+    textAlign: "center",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+  },
+  statValue: { margin: "0 0 4px", fontSize: 32, fontWeight: 700 },
+  statLabel: { margin: 0, fontSize: 12, color: "#6b7280" },
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+    background: "#fff",
+    fontSize: 13,
+  },
+  th: {
+    padding: "10px 12px",
+    background: "#f8fafc",
+    textAlign: "left",
+    fontWeight: 600,
+    color: "#374151",
+    borderBottom: "1px solid #e5e7eb",
+    whiteSpace: "nowrap",
+  },
+  tr: { borderBottom: "1px solid #f1f5f9" },
+  td: { padding: "10px 12px", color: "#374151", verticalAlign: "top" },
+  pill: {
+    fontSize: 11,
+    padding: "2px 8px",
+    color: "#fff",
+    borderRadius: 10,
+    fontWeight: 500,
+    display: "inline-block",
+  },
+  typePill: {
+    fontSize: 11,
+    padding: "2px 8px",
+    background: "#e0f2fe",
+    color: "#0369a1",
+    borderRadius: 10,
+    fontWeight: 500,
+  },
+  select: {
+    padding: "5px 8px",
+    border: "1px solid #d1d5db",
+    borderRadius: 6,
+    fontSize: 12,
+    cursor: "pointer",
+  },
+  actionBtn: {
+    padding: "4px 10px",
+    background: "#3b82f6",
+    color: "#fff",
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontSize: 12,
+  },
+  assignBtn: {
+    padding: "5px 10px",
+    background: "#8b5cf6",
+    color: "#fff",
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontSize: 12,
+    whiteSpace: "nowrap",
+  },
+  viewBtn: {
+    padding: "5px 10px",
+    background: "#f0fdf4",
+    color: "#166534",
+    border: "1px solid #86efac",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontSize: 12,
+  },
+  releaseBtn: {
+    padding: "3px 8px",
+    background: "#fff7ed",
+    color: "#c2410c",
+    border: "1px solid #fdba74",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontSize: 11,
+    whiteSpace: "nowrap",
+  },
+  assignmentList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    marginTop: 4,
+  },
+  assignmentItem: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 6,
+    background: "#f8fafc",
+    borderRadius: 6,
+    padding: "5px 8px",
+    border: "1px solid #e5e7eb",
+  },
+  assignmentName: { fontSize: 11, color: "#374151", fontWeight: 500 },
+  deleteBtn: {
+    padding: "4px 10px",
+    background: "#fef2f2",
+    color: "#ef4444",
+    border: "1px solid #fca5a5",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontSize: 12,
+    marginTop: 6,
+  },
+  formCard: {
+    background: "#fff",
+    borderRadius: 10,
+    padding: "1.25rem",
+    marginBottom: "1.5rem",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+  },
+  input: {
+    padding: "8px 12px",
+    border: "1px solid #d1d5db",
+    borderRadius: 8,
+    fontSize: 14,
+    outline: "none",
+  },
+  addBtn: {
+    padding: "8px 16px",
+    background: "#2563eb",
+    color: "#fff",
+    border: "none",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontSize: 14,
+    fontWeight: 500,
+    whiteSpace: "nowrap",
+  },
+  cancelBtn: {
+    padding: "8px 16px",
+    background: "#f3f4f6",
+    color: "#374151",
+    border: "1px solid #d1d5db",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontSize: 14,
+  },
+  resourceCard: {
+    background: "#fff",
+    borderRadius: 10,
+    padding: "1rem",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+  },
+  resourceTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
   resourceIcon: { fontSize: 28 },
-  statusDot:    { width: 10, height: 10, borderRadius: '50%' },
-  resourceName: { margin: 0, fontWeight: 600, fontSize: 14, color: '#111' },
-  resourceType: { margin: 0, fontSize: 12, color: '#6b7280', textTransform: 'capitalize' },
-  resourceQty:  { margin: 0, fontSize: 12, color: '#9ca3af' },
-  alertsList:   { display: 'flex', flexDirection: 'column', gap: '0.75rem' },
-  alertRow:     { background: '#fff', borderRadius: 10, padding: '1rem', display: 'flex', gap: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', alignItems: 'flex-start' },
-  alertTitle:   { fontWeight: 600, fontSize: 14, color: '#111' },
-  alertSource:  { fontSize: 11, color: '#9ca3af' },
-  alertMsg:     { margin: '4px 0', fontSize: 13, color: '#6b7280' },
-  alertDate:    { margin: 0, fontSize: 11, color: '#9ca3af' },
-  muted:        { color: '#6b7280', fontSize: 14 },
-  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modal:        { background: '#fff', borderRadius: 12, padding: '1.5rem', width: '100%', maxWidth: 440, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' },
+  statusDot: { width: 10, height: 10, borderRadius: "50%" },
+  resourceName: { margin: 0, fontWeight: 600, fontSize: 14, color: "#111" },
+  resourceType: {
+    margin: 0,
+    fontSize: 12,
+    color: "#6b7280",
+    textTransform: "capitalize",
+  },
+  resourceQty: { margin: 0, fontSize: 12, color: "#9ca3af" },
+  alertRow: {
+    background: "#fff",
+    borderRadius: 10,
+    padding: "1rem",
+    display: "flex",
+    gap: 12,
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+    alignItems: "flex-start",
+  },
+  releaseCardBtn: {
+    padding: "6px 12px",
+    background: "#fff7ed",
+    color: "#c2410c",
+    border: "1px solid #fdba74",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontSize: 13,
+    fontWeight: 500,
+    marginTop: 4,
+  },
+  alertTitle: { fontWeight: 600, fontSize: 14, color: "#111" },
+  alertSource: { fontSize: 11, color: "#9ca3af" },
+  alertMsg: { margin: "4px 0", fontSize: 13, color: "#6b7280" },
+  alertDate: { margin: 0, fontSize: 11, color: "#9ca3af" },
+  muted: { color: "#6b7280", fontSize: 14 },
 };

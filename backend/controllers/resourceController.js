@@ -1,6 +1,5 @@
 const pool = require('../config/db');
 
-// GET /api/resources
 exports.getAllResources = async (req, res) => {
   try {
     const [rows] = await pool.execute(
@@ -17,7 +16,6 @@ exports.getAllResources = async (req, res) => {
   }
 };
 
-// POST /api/resources — admin creates resource
 exports.createResource = async (req, res) => {
   const { name, type, quantity, lat, lng } = req.body;
   if (!name || !type)
@@ -37,7 +35,6 @@ exports.createResource = async (req, res) => {
   }
 };
 
-// PUT /api/resources/:id — admin updates resource
 exports.updateResource = async (req, res) => {
   const { name, type, quantity, status, lat, lng } = req.body;
   try {
@@ -55,7 +52,6 @@ exports.updateResource = async (req, res) => {
   }
 };
 
-// DELETE /api/resources/:id
 exports.deleteResource = async (req, res) => {
   try {
     await pool.execute('DELETE FROM resources WHERE id = ?', [req.params.id]);
@@ -65,13 +61,11 @@ exports.deleteResource = async (req, res) => {
   }
 };
 
-// POST /api/resources/assign — assign resource to incident
 exports.assignResource = async (req, res) => {
   const { incident_id, resource_id } = req.body;
   if (!incident_id || !resource_id)
     return res.status(400).json({ message: 'incident_id and resource_id are required' });
   try {
-    // Check resource is available
     const [resource] = await pool.execute(
       'SELECT * FROM resources WHERE id = ?', [resource_id]
     );
@@ -80,22 +74,17 @@ exports.assignResource = async (req, res) => {
     if (resource[0].status === 'deployed')
       return res.status(400).json({ message: 'Resource already deployed' });
 
-    // Create assignment
     await pool.execute(
       `INSERT INTO resource_assignments (incident_id, resource_id, assigned_by)
        VALUES (?,?,?)`,
       [incident_id, resource_id, req.user.id]
     );
-
-    // Mark resource as deployed
     await pool.execute(
       'UPDATE resources SET status = ? WHERE id = ?',
       ['deployed', resource_id]
     );
 
-    // Emit real-time update
     req.app.get('io').emit('resource_assigned', { incident_id, resource_id });
-
     res.json({ message: 'Resource assigned successfully' });
   } catch (err) {
     console.error(err);
@@ -103,7 +92,6 @@ exports.assignResource = async (req, res) => {
   }
 };
 
-// POST /api/resources/release/:assignment_id
 exports.releaseResource = async (req, res) => {
   try {
     const [assignment] = await pool.execute(
@@ -124,14 +112,12 @@ exports.releaseResource = async (req, res) => {
     req.app.get('io').emit('resource_released', {
       resource_id: assignment[0].resource_id
     });
-
     res.json({ message: 'Resource released successfully' });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-// GET /api/resources/assignments/:incident_id
 exports.getIncidentAssignments = async (req, res) => {
   try {
     const [rows] = await pool.execute(
@@ -145,6 +131,49 @@ exports.getIncidentAssignments = async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// POST /api/resources/release-by-resource/:resource_id
+// Releases a resource directly by resource ID — used from Resources tab
+exports.releaseByResource = async (req, res) => {
+  const { resource_id } = req.params;
+  try {
+    // Find the active assignment for this resource
+    const [assignments] = await pool.execute(
+      `SELECT * FROM resource_assignments
+       WHERE resource_id = ? AND released_at IS NULL
+       ORDER BY assigned_at DESC LIMIT 1`,
+      [resource_id]
+    );
+
+    if (!assignments.length) {
+      // No assignment found — just mark resource as available directly
+      await pool.execute(
+        'UPDATE resources SET status = ? WHERE id = ?',
+        ['available', resource_id]
+      );
+      req.app.get('io').emit('resource_released', { resource_id: Number(resource_id) });
+      return res.json({ message: 'Resource marked as available' });
+    }
+
+    // Mark assignment as released
+    await pool.execute(
+      'UPDATE resource_assignments SET released_at = NOW() WHERE id = ?',
+      [assignments[0].id]
+    );
+
+    // Mark resource as available
+    await pool.execute(
+      'UPDATE resources SET status = ? WHERE id = ?',
+      ['available', resource_id]
+    );
+
+    req.app.get('io').emit('resource_released', { resource_id: Number(resource_id) });
+    res.json({ message: 'Resource released successfully' });
+  } catch (err) {
+    console.error('Release by resource error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };
