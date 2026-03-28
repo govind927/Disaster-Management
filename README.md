@@ -9,6 +9,15 @@ A full-stack web application that helps authorities and citizens prepare for dis
 
 ---
 
+## Live Demo
+
+| Service | URL |
+|---------|-----|
+| Frontend | https://your-app.netlify.app |
+| Backend API | https://your-backend.onrender.com/api/health |
+
+---
+
 ## Table of Contents
 
 - [Features](#features)
@@ -23,6 +32,7 @@ A full-stack web application that helps authorities and citizens prepare for dis
   - [Running Locally](#running-locally)
 - [API Documentation](#api-documentation)
 - [Pages & Features](#pages--features)
+- [Real-time Events](#real-time-events)
 - [Deployment](#deployment)
 - [Contributing](#contributing)
 - [License](#license)
@@ -44,7 +54,8 @@ A full-stack web application that helps authorities and citizens prepare for dis
 - **Socket.io Rooms** — User and admin rooms for targeted notifications
 - **Live Status Bar** — Pulsing connection indicator with online user count
 - **Global Toast System** — Slide-in notifications for all real-time events
-- **Resource Release** — Deployed resources can be released back to available state
+- **Resource Release** — Deployed resources can be released back to available state directly from resource cards
+- **Responsive UI** — Mobile-first design works on phone, tablet, and desktop
 
 ---
 
@@ -52,9 +63,9 @@ A full-stack web application that helps authorities and citizens prepare for dis
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React 19, React Router DOM, Vite |
-| Backend | Node.js, Express 4 |
-| Database | MySQL 8 |
+| Frontend | React 19, React Router DOM 7, Vite 6 |
+| Backend | Node.js 22, Express 4.18 |
+| Database | MySQL 8 (freesqldatabase.com) |
 | Real-time | Socket.io 4 |
 | Maps | Google Maps JavaScript API, @react-google-maps/api |
 | Weather | OpenWeatherMap API |
@@ -62,6 +73,7 @@ A full-stack web application that helps authorities and citizens prepare for dis
 | File Upload | Multer |
 | HTTP Client | Axios |
 | Dev Tools | Nodemon, ESLint |
+| Deployment | Render (backend), Netlify (frontend), freesqldatabase (DB) |
 
 ---
 
@@ -69,21 +81,24 @@ A full-stack web application that helps authorities and citizens prepare for dis
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                  Frontend (React + Vite)             │
+│            Frontend — React + Vite                   │
 │   Login · Dashboard · Map · Report · Admin Panel    │
+│              Deployed on Netlify                     │
 └────────────────────────┬────────────────────────────┘
                          │ HTTP / WebSocket
 ┌────────────────────────▼────────────────────────────┐
-│              Backend (Node.js + Express)             │
-│   Auth API · Incidents · Alerts · Resources · Admin  │
-│              Socket.io (real-time events)            │
+│           Backend — Node.js + Express                │
+│   Auth · Incidents · Alerts · Resources · Admin     │
+│         Socket.io (real-time events)                 │
+│              Deployed on Render                      │
 └──────────┬──────────────────────────┬───────────────┘
            │                          │
 ┌──────────▼──────────┐   ┌──────────▼──────────────┐
 │   MySQL Database     │   │     External APIs        │
-│  users · incidents   │   │  OpenWeatherMap          │
-│  resources · alerts  │   │  Google Maps API         │
-│  assignments · notif │   └─────────────────────────┘
+│  freesqldatabase.com │   │  OpenWeatherMap          │
+│  users · incidents   │   │  Google Maps API         │
+│  resources · alerts  │   └─────────────────────────┘
+│  assignments · notif │
 └──────────────────────┘
 ```
 
@@ -91,7 +106,7 @@ A full-stack web application that helps authorities and citizens prepare for dis
 
 ## Database Schema
 
-```sql
+```
 users                  incidents               resources
 ─────────────────      ─────────────────────   ─────────────────────
 id (PK)                id (PK)                 id (PK)
@@ -146,7 +161,7 @@ disaster-mgmt/
 │   ├── services/
 │   │   └── weatherService.js     # OpenWeatherMap integration
 │   ├── uploads/                  # Uploaded incident images
-│   ├── .env
+│   ├── .env                      # Local environment variables
 │   ├── .gitignore
 │   ├── package.json
 │   └── server.js
@@ -178,9 +193,9 @@ disaster-mgmt/
     │   │   └── responsive.css     # Mobile-first responsive CSS
     │   ├── App.jsx
     │   └── main.jsx
-    ├── .env
+    ├── .env                       # Local environment variables
     ├── .gitignore
-    ├── netlify.toml
+    ├── netlify.toml               # Netlify build + redirect config
     └── package.json
 ```
 
@@ -252,18 +267,21 @@ VITE_GOOGLE_MAPS_KEY=your_google_maps_api_key
 
 **1. Set up the database**
 
-Open MySQL and run:
+Open MySQL CMD and connect:
+```bash
+mysql -u root -p
+```
+
+Then create and use the database:
 ```sql
 CREATE DATABASE IF NOT EXISTS disaster_mgmt;
 USE disaster_mgmt;
 ```
 
-Then run the full schema from `backend/schema.sql` or copy the CREATE TABLE statements from the Database Schema section above.
+Run all the CREATE TABLE statements from the Database Schema section above.
 
 **2. Seed initial resources**
 ```sql
-USE disaster_mgmt;
-
 INSERT INTO resources (name, type, quantity, status) VALUES
 ('Ambulance Unit 1',    'ambulance',    2, 'available'),
 ('Ambulance Unit 2',    'ambulance',    1, 'available'),
@@ -279,7 +297,7 @@ INSERT INTO resources (name, type, quantity, status) VALUES
 
 **3. Create your admin account**
 
-Register via the app, then run:
+Register via the app, then promote yourself to admin:
 ```sql
 UPDATE users SET role = 'admin' WHERE email = 'your@email.com';
 ```
@@ -320,34 +338,34 @@ Visit `http://localhost:5173` in your browser.
 
 | Method | Endpoint | Auth | Role | Description |
 |--------|----------|------|------|-------------|
-| GET | `/` | Yes | Any | Get all incidents (filterable) |
+| GET | `/` | Yes | Any | Get all incidents (filterable by type, severity, status) |
 | GET | `/my` | Yes | Any | Get current user's incidents |
 | GET | `/:id` | Yes | Any | Get single incident |
-| POST | `/` | Yes | Any | Create incident (multipart/form-data) |
+| POST | `/` | Yes | Any | Create incident (multipart/form-data with image) |
 | PUT | `/:id/status` | Yes | Admin | Update incident status |
 
 ### Alert Routes — `/api/alerts`
 
 | Method | Endpoint | Auth | Role | Description |
 |--------|----------|------|------|-------------|
-| GET | `/weather?lat=&lng=` | Yes | Any | Get weather alert for location |
+| GET | `/weather?lat=&lng=` | Yes | Any | Get weather alert for coordinates |
 | GET | `/forecast?lat=&lng=` | Yes | Any | Get 5-day forecast |
 | GET | `/` | Yes | Any | Get all active alerts from DB |
-| POST | `/` | Yes | Admin | Create manual alert |
+| POST | `/` | Yes | Admin | Create and broadcast manual alert |
 | DELETE | `/:id` | Yes | Admin | Delete an alert |
 
 ### Resource Routes — `/api/resources`
 
 | Method | Endpoint | Auth | Role | Description |
 |--------|----------|------|------|-------------|
-| GET | `/` | Yes | Any | Get all resources |
-| POST | `/` | Yes | Admin | Create a resource |
+| GET | `/` | Yes | Any | Get all resources with assignment count |
+| POST | `/` | Yes | Admin | Create a new resource |
 | PUT | `/:id` | Yes | Admin | Update a resource |
 | DELETE | `/:id` | Yes | Admin | Delete a resource |
 | POST | `/assign` | Yes | Admin | Assign resource to incident |
-| POST | `/release/:id` | Yes | Admin | Release by assignment ID |
-| POST | `/release-by-resource/:id` | Yes | Admin | Release by resource ID |
-| GET | `/assignments/:incident_id` | Yes | Any | Get assignments for incident |
+| POST | `/release/:id` | Yes | Admin | Release resource by assignment ID |
+| POST | `/release-by-resource/:id` | Yes | Admin | Release resource directly by resource ID |
+| GET | `/assignments/:incident_id` | Yes | Any | Get active assignments for an incident |
 
 ### Admin Routes — `/api/admin`
 
@@ -355,7 +373,7 @@ Visit `http://localhost:5173` in your browser.
 |--------|----------|------|------|-------------|
 | GET | `/stats` | Yes | Admin | Get dashboard statistics |
 | GET | `/incidents` | Yes | Admin | Get all incidents with reporter details |
-| GET | `/users` | Yes | Admin | Get all users |
+| GET | `/users` | Yes | Admin | Get all users with incident count |
 | PUT | `/users/:id/role` | Yes | Admin | Update user role |
 
 ---
@@ -366,87 +384,114 @@ Visit `http://localhost:5173` in your browser.
 
 | Page | Route | Description |
 |------|-------|-------------|
-| Login | `/login` | JWT-based login with role redirect |
+| Login | `/login` | JWT-based login with role-based redirect |
 | Register | `/register` | Create citizen account |
 | Dashboard | `/dashboard` | View own reported incidents with status badges |
 | Report Incident | `/report` | Report disaster with GPS, photo, type, severity |
 | Map View | `/map` | Interactive map with all incidents, filters, heatmap |
-| Alerts | `/alerts` | Current weather, 5-day forecast, active alerts |
+| Alerts | `/alerts` | Current weather, 5-day forecast, active alerts list |
 
 ### Admin Pages
 
 | Page | Route | Description |
 |------|-------|-------------|
 | Admin Panel | `/admin` | Full control center with 5 tabs |
-| Overview | `/admin` → Overview | Stats cards + recent incidents |
-| Incidents | `/admin` → Incidents | Manage status, assign/release resources |
-| Resources | `/admin` → Resources | Add, delete, release deployed resources |
-| Alerts | `/admin` → Alerts | Create/delete manual alerts |
-| Users | `/admin` → Users | View all users, change roles |
+| Overview tab | — | 8 stat cards + recent incidents table |
+| Incidents tab | — | Manage status, assign and release resources |
+| Resources tab | — | Add, delete, release deployed resources |
+| Alerts tab | — | Create/broadcast/delete manual alerts |
+| Users tab | — | View all users, change roles |
 
-### Real-time Socket Events
+---
+
+## Real-time Events
 
 | Event | Direction | Description |
 |-------|-----------|-------------|
-| `new_incident` | Server → Client | New incident reported |
-| `incident_updated` | Server → Client | Incident status changed |
-| `new_alert` | Server → Client | New alert broadcasted |
-| `alert_deleted` | Server → Client | Alert removed |
-| `resource_assigned` | Server → Client | Resource assigned to incident |
-| `resource_released` | Server → Client | Resource released back to available |
-| `users_online` | Server → Client | Live online user count |
+| `new_incident` | Server → All | New incident appears on map instantly |
+| `incident_updated` | Server → All | Incident status updates live |
+| `new_alert` | Server → All | Toast + banner shown to all users |
+| `alert_deleted` | Server → All | Alert removed from list instantly |
+| `resource_assigned` | Server → All | Resource status updates to deployed |
+| `resource_released` | Server → All | Resource status updates to available |
+| `users_online` | Server → All | Live online user count updates |
 
 ---
 
 ## Deployment
 
-This project is deployed using three free services:
+This project is deployed using three completely free services:
 
-| Service | Purpose | URL |
-|---------|---------|-----|
-| db4free.net | MySQL Database | db4free.net |
-| Render | Backend (Node.js) | render.com |
-| Netlify | Frontend (React) | netlify.com |
+| Service | Purpose | Cost |
+|---------|---------|------|
+| freesqldatabase.com | MySQL Database | Free forever (5MB) |
+| Render | Backend Node.js | Free tier |
+| Netlify | Frontend React | Free forever |
 
-### Environment Variables for Production
+### Step 1 — Database (freesqldatabase.com)
 
-**Render (Backend):**
+1. Sign up at `freesqldatabase.com`
+2. Get credentials from your account dashboard
+3. Login to phpMyAdmin and run the full schema SQL
+4. **Important:** SSL must be disabled — freesqldatabase does not support SSL connections
+
+### Step 2 — Backend (Render)
+
+1. Connect GitHub repo at `render.com`
+2. Set Root Directory to `backend`
+3. Build Command: `npm install`
+4. Start Command: `npm start`
+5. Add environment variables:
+
 ```env
 PORT=5000
-DB_HOST=db4free.net
-DB_USER=your_db4free_username
-DB_PASSWORD=your_db4free_password
-DB_NAME=disaster_mgmt
+DB_HOST=sql12.freesqldatabase.com
+DB_USER=your_db_username
+DB_PASSWORD=your_db_password
+DB_NAME=your_db_name
 DB_PORT=3306
-JWT_SECRET=your_production_jwt_secret
+JWT_SECRET=your_jwt_secret
 OPENWEATHER_API_KEY=your_key
 CLIENT_URL=https://your-app.netlify.app
 NODE_ENV=production
 ```
 
-**Netlify (Frontend):**
+### Step 3 — Frontend (Netlify)
+
+1. Connect GitHub repo at `netlify.com`
+2. Base directory: `frontend`
+3. Build command: `npm run build`
+4. Publish directory: `frontend/dist`
+5. Add environment variables:
+
 ```env
 VITE_API_URL=https://your-backend.onrender.com/api
 VITE_SOCKET_URL=https://your-backend.onrender.com
 VITE_BACKEND_URL=https://your-backend.onrender.com
-VITE_GOOGLE_MAPS_KEY=your_key
+VITE_GOOGLE_MAPS_KEY=your_google_maps_key
 ```
 
-### Netlify Build Settings
+### Post-Deployment Steps
 
-| Field | Value |
-|-------|-------|
-| Base directory | `frontend` |
-| Build command | `npm run build` |
-| Publish directory | `frontend/dist` |
+1. After getting Netlify URL, update `CLIENT_URL` on Render to match exactly
+2. Add your Netlify URL to Google Maps API key HTTP referrer restrictions
+3. Register on the live app and promote your account to admin via phpMyAdmin
 
-### Render Build Settings
+### Important Notes
 
-| Field | Value |
-|-------|-------|
-| Root Directory | `backend` |
-| Build Command | `npm install` |
-| Start Command | `npm start` |
+- Render free tier spins down after 15 minutes of inactivity — first request may take 30-60 seconds to wake up
+- The `netlify.toml` file handles SPA routing — all routes redirect to `index.html`
+- Image uploads are stored on Render's ephemeral filesystem — they reset on redeploy. For production use, integrate Cloudinary
+- freesqldatabase does **not** support SSL — ensure `ssl: false` in `db.js`
+
+---
+
+## Known Limitations
+
+- Render free tier cold start delay of 30-60 seconds after inactivity
+- freesqldatabase free tier limited to 5MB storage (sufficient for demo/college use)
+- Uploaded images reset on Render redeploy (ephemeral filesystem)
+- Google Maps API key should be restricted to your domain in production
 
 ---
 
@@ -459,8 +504,6 @@ VITE_GOOGLE_MAPS_KEY=your_key
 5. Open a Pull Request
 
 ### Commit Message Convention
-
-This project follows conventional commits:
 
 | Prefix | Use for |
 |--------|---------|
@@ -481,13 +524,14 @@ This project is licensed under the MIT License.
 
 ## Acknowledgements
 
-- [OpenWeatherMap](https://openweathermap.org/) for weather data
-- [Google Maps Platform](https://developers.google.com/maps) for mapping
+- [OpenWeatherMap](https://openweathermap.org/) for weather data API
+- [Google Maps Platform](https://developers.google.com/maps) for mapping services
 - [Socket.io](https://socket.io/) for real-time communication
 - [Render](https://render.com/) for backend hosting
 - [Netlify](https://netlify.com/) for frontend hosting
-- [db4free.net](https://db4free.net/) for free MySQL hosting
+- [freesqldatabase.com](https://freesqldatabase.com/) for free MySQL hosting
 
 ---
 
-> Built as a college project demonstrating full-stack development with real-time features, map integration, and role-based access control.
+> Built with ❤️ demonstrating full-stack development with real-time features,
+> map integration, weather API, and role-based access control.

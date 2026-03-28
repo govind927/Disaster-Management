@@ -9,6 +9,7 @@ const pool = mysql.createPool({
   port:     Number(process.env.DB_PORT) || 3306,
   waitForConnections: true,
   connectionLimit: 10,
+  ssl: false,
 });
 
 pool.getConnection()
