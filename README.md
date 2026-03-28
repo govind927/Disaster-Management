@@ -13,8 +13,8 @@ A full-stack web application that helps authorities and citizens prepare for dis
 
 | Service | URL |
 |---------|-----|
-| Frontend | https://your-app.netlify.app |
-| Backend API | https://your-backend.onrender.com/api/health |
+| Frontend | https://disaster-mgmt.netlify.app |
+| Backend API | https://disaster-management-backend-85vf.onrender.com/api/health |
 
 ---
 
