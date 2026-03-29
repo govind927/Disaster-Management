@@ -227,23 +227,66 @@ export default function AdminPanel() {
       <LiveStatusBar />
 
       {/* Navbar */}
-      <div style={s.navbar}>
-        <h2 style={s.brand}>Admin Control Center</h2>
-        <div style={s.navRight}>
-          <button onClick={() => navigate("/dashboard")} style={s.navBtn}>
+      <div className="admin-nav">
+        <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: "#fff" }}>
+          Admin Control Center
+        </h2>
+        <div className="admin-nav-links">
+          <button
+            onClick={() => navigate("/dashboard")}
+            style={{
+              padding: "6px 12px",
+              background: "rgba(255,255,255,0.1)",
+              color: "#fff",
+              border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: 8,
+              cursor: "pointer",
+              fontSize: 13,
+            }}
+          >
             Dashboard
           </button>
-          <button onClick={() => navigate("/map")} style={s.navBtn}>
+          <button
+            onClick={() => navigate("/map")}
+            style={{
+              padding: "6px 12px",
+              background: "rgba(255,255,255,0.1)",
+              color: "#fff",
+              border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: 8,
+              cursor: "pointer",
+              fontSize: 13,
+            }}
+          >
             Live Map
           </button>
-          <span style={s.adminBadge}>ADMIN</span>
-          <span style={s.adminName}>{user?.name}</span>
+          <span
+            style={{
+              background: "#7c3aed",
+              color: "#fff",
+              padding: "3px 10px",
+              borderRadius: 20,
+              fontSize: 11,
+              fontWeight: 700,
+            }}
+          >
+            ADMIN
+          </span>
+          <span style={{ color: "#c7d2fe", fontSize: 13 }}>{user?.name}</span>
           <button
             onClick={() => {
               logout();
               navigate("/login");
             }}
-            style={s.logoutBtn}
+            style={{
+              padding: "6px 12px",
+              background: "#ef4444",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              cursor: "pointer",
+              fontSize: 13,
+            }}
           >
             Logout
           </button>
@@ -322,6 +365,7 @@ export default function AdminPanel() {
                 <thead>
                   <tr>
                     {[
+                      "Image",
                       "Title",
                       "Type",
                       "Severity",
@@ -339,6 +383,28 @@ export default function AdminPanel() {
                 <tbody>
                   {incidents.slice(0, 5).map((inc) => (
                     <tr key={inc.id} style={s.tr}>
+                      {/* ADD THIS */}
+                      <td style={s.td}>
+                        {inc.image_url ? (
+                          <img
+                            src={inc.image_url}
+                            alt="incident"
+                            style={{
+                              width: 60,
+                              height: 45,
+                              objectFit: "cover",
+                              borderRadius: 6,
+                              cursor: "pointer",
+                            }}
+                            onClick={() => window.open(inc.image_url, "_blank")}
+                          />
+                        ) : (
+                          <span style={{ fontSize: 11, color: "#9ca3af" }}>
+                            No image
+                          </span>
+                        )}
+                      </td>
+
                       <td style={s.td}>{inc.title}</td>
                       <td style={s.td}>
                         <span style={s.typePill}>{inc.type}</span>
@@ -393,6 +459,7 @@ export default function AdminPanel() {
                   <tr>
                     {[
                       "ID",
+                      "Image",
                       "Title",
                       "Type",
                       "Severity",
@@ -415,6 +482,26 @@ export default function AdminPanel() {
                       style={{ ...s.tr, background: STATUS_BG[inc.status] }}
                     >
                       <td style={s.td}>#{inc.id}</td>
+                      <td style={s.td}>
+                        {inc.image_url ? (
+                          <img
+                            src={inc.image_url}
+                            alt="incident"
+                            style={{
+                              width: 60,
+                              height: 45,
+                              objectFit: "cover",
+                              borderRadius: 6,
+                              cursor: "pointer",
+                            }}
+                            onClick={() => window.open(inc.image_url, "_blank")}
+                          />
+                        ) : (
+                          <span style={{ fontSize: 11, color: "#9ca3af" }}>
+                            No image
+                          </span>
+                        )}
+                      </td>
                       <td style={{ ...s.td, maxWidth: 160 }}>{inc.title}</td>
                       <td style={s.td}>
                         <span style={s.typePill}>{inc.type}</span>
