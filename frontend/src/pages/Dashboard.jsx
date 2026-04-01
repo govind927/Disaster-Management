@@ -39,21 +39,19 @@ export default function Dashboard() {
     <div className="page-bg">
       <LiveStatusBar />
 
-      {/* ── Navbar ── */}
+      {/* Navbar */}
       <nav className="nav">
-        <span className="nav-brand">Disaster Management</span>
-
-        {/* Desktop links */}
+        <span className="nav-brand">⚡ Disaster Management</span>
         <div className="nav-links">
           <span className="nav-welcome">Hello, {user?.name}</span>
           <button className="btn-report" onClick={() => navigate("/report")}>
-            Report Incident
+            + Report
           </button>
           <button className="btn-map" onClick={() => navigate("/map")}>
-            View Map
+            Live Map
           </button>
           <button className="btn-alerts" onClick={() => navigate("/alerts")}>
-            View Alerts
+            Alerts
           </button>
           {isAdmin && (
             <button className="btn-admin" onClick={() => navigate("/admin")}>
@@ -64,36 +62,43 @@ export default function Dashboard() {
             Logout
           </button>
         </div>
-
-        {/* Hamburger */}
         <button className="hamburger" onClick={() => setMenuOpen((p) => !p)}>
           {menuOpen ? "✕" : "☰"}
         </button>
       </nav>
 
-      {/* Mobile dropdown */}
+      {/* Mobile menu */}
       <div className={`mobile-menu ${menuOpen ? "open" : ""}`}>
         <span className="mobile-menu-welcome">Hello, {user?.name}</span>
         <button
-          style={{ background: "#ef4444", color: "#fff" }}
+          style={{
+            background: "linear-gradient(135deg,#ef4444,#dc2626)",
+            color: "#fff",
+          }}
           onClick={() => {
             navigate("/report");
             setMenuOpen(false);
           }}
         >
-          Report Incident
+          + Report Incident
         </button>
         <button
-          style={{ background: "#2563eb", color: "#fff" }}
+          style={{
+            background: "linear-gradient(135deg,#3b82f6,#2563eb)",
+            color: "#fff",
+          }}
           onClick={() => {
             navigate("/map");
             setMenuOpen(false);
           }}
         >
-          View Map
+          Live Map
         </button>
         <button
-          style={{ background: "#f59e0b", color: "#fff" }}
+          style={{
+            background: "linear-gradient(135deg,#f59e0b,#d97706)",
+            color: "#fff",
+          }}
           onClick={() => {
             navigate("/alerts");
             setMenuOpen(false);
@@ -103,7 +108,10 @@ export default function Dashboard() {
         </button>
         {isAdmin && (
           <button
-            style={{ background: "#7c3aed", color: "#fff" }}
+            style={{
+              background: "linear-gradient(135deg,#8b5cf6,#7c3aed)",
+              color: "#fff",
+            }}
             onClick={() => {
               navigate("/admin");
               setMenuOpen(false);
@@ -113,7 +121,11 @@ export default function Dashboard() {
           </button>
         )}
         <button
-          style={{ background: "#6b7280", color: "#fff" }}
+          style={{
+            background: "rgba(255,255,255,0.05)",
+            color: "#94a3b8",
+            border: "1px solid rgba(255,255,255,0.1)",
+          }}
           onClick={handleLogout}
         >
           Logout
@@ -129,18 +141,54 @@ export default function Dashboard() {
           />
         )}
 
-        <h3 className="section-title">My Reported Incidents</h3>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "1.5rem",
+            flexWrap: "wrap",
+            gap: "1rem",
+          }}
+        >
+          <h3 className="section-title" style={{ margin: 0 }}>
+            My Reported Incidents
+          </h3>
+          <button
+            className="btn-report"
+            onClick={() => navigate("/report")}
+            style={{ padding: "9px 20px", fontSize: 14 }}
+          >
+            + Report New Incident
+          </button>
+        </div>
 
         {loading && (
-          <p style={{ color: "#6b7280", fontSize: 14 }}>Loading...</p>
+          <div
+            style={{ textAlign: "center", padding: "3rem", color: "#475569" }}
+          >
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                border: "3px solid rgba(255,255,255,0.1)",
+                borderTop: "3px solid #3b82f6",
+                borderRadius: "50%",
+                animation: "spin 0.8s linear infinite",
+                margin: "0 auto 1rem",
+              }}
+            />
+            Loading incidents...
+          </div>
         )}
 
         {!loading && incidents.length === 0 && (
           <div className="empty-state">
+            <div style={{ fontSize: 48, marginBottom: "1rem" }}>🗺️</div>
             <p>You haven't reported any incidents yet.</p>
             <button
               className="btn-report"
-              style={{ marginTop: "1rem", padding: "10px 20px", fontSize: 14 }}
+              style={{ padding: "10px 24px", fontSize: 14 }}
               onClick={() => navigate("/report")}
             >
               Report Your First Incident
@@ -149,13 +197,16 @@ export default function Dashboard() {
         )}
 
         <div className="incident-grid">
-          {incidents.map((inc) => (
-            <div key={inc.id} className="incident-card">
+          {incidents.map((inc, i) => (
+            <div
+              key={inc.id}
+              className="incident-card"
+              style={{ animationDelay: `${i * 0.05}s` }}
+            >
               {inc.image_url && (
-                <img
-                  src={inc.image_url}
-                  alt="incident"
-                />
+                <div style={{ overflow: "hidden" }}>
+                  <img src={inc.image_url} alt="incident" />
+                </div>
               )}
               <div className="card-body">
                 <div className="card-top">

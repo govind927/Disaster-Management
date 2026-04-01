@@ -1,8 +1,28 @@
 const SEVERITY_STYLES = {
-  low:      { background: '#f0fdf4', border: '#86efac', color: '#166534', icon: 'ℹ' },
-  medium:   { background: '#fffbeb', border: '#fcd34d', color: '#92400e', icon: '⚠' },
-  high:     { background: '#fff7ed', border: '#fb923c', color: '#9a3412', icon: '⚠' },
-  critical: { background: '#fef2f2', border: '#f87171', color: '#991b1b', icon: '🚨' },
+  low: {
+    bg: "rgba(34,197,94,0.1)",
+    border: "rgba(34,197,94,0.25)",
+    color: "#4ade80",
+    icon: "ℹ",
+  },
+  medium: {
+    bg: "rgba(245,158,11,0.1)",
+    border: "rgba(245,158,11,0.25)",
+    color: "#fbbf24",
+    icon: "⚠",
+  },
+  high: {
+    bg: "rgba(249,115,22,0.1)",
+    border: "rgba(249,115,22,0.25)",
+    color: "#fb923c",
+    icon: "⚠",
+  },
+  critical: {
+    bg: "rgba(239,68,68,0.1)",
+    border: "rgba(239,68,68,0.3)",
+    color: "#f87171",
+    icon: "🚨",
+  },
 };
 
 export default function AlertBanner({ alert, onDismiss }) {
@@ -10,31 +30,53 @@ export default function AlertBanner({ alert, onDismiss }) {
   const style = SEVERITY_STYLES[alert.severity] || SEVERITY_STYLES.medium;
 
   return (
-    <div style={{
-      background:   style.background,
-      border:       `1px solid ${style.border}`,
-      borderLeft:   `4px solid ${style.border}`,
-      borderRadius: 8,
-      padding:      '12px 16px',
-      display:      'flex',
-      alignItems:   'flex-start',
-      gap:          10,
-      marginBottom: '1rem',
-    }}>
+    <div
+      className="alert-banner"
+      style={{
+        background: style.bg,
+        border: `1px solid ${style.border}`,
+        borderLeft: `3px solid ${style.border}`,
+      }}
+    >
       <span style={{ fontSize: 18, flexShrink: 0 }}>{style.icon}</span>
       <div style={{ flex: 1 }}>
-        <p style={{ margin: 0, fontWeight: 600, color: style.color, fontSize: 14 }}>
+        <p
+          style={{
+            margin: 0,
+            fontWeight: 600,
+            color: style.color,
+            fontSize: 14,
+          }}
+        >
           {alert.title}
         </p>
-        <p style={{ margin: '2px 0 0', fontSize: 13, color: style.color, opacity: 0.85 }}>
+        <p
+          style={{
+            margin: "2px 0 0",
+            fontSize: 13,
+            color: style.color,
+            opacity: 0.8,
+          }}
+        >
           {alert.message}
         </p>
       </div>
       {onDismiss && (
-        <button onClick={onDismiss} style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: style.color, fontSize: 18, lineHeight: 1, flexShrink: 0,
-        }}>×</button>
+        <button
+          onClick={onDismiss}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: style.color,
+            fontSize: 20,
+            lineHeight: 1,
+            flexShrink: 0,
+            opacity: 0.7,
+          }}
+        >
+          ×
+        </button>
       )}
     </div>
   );

@@ -93,7 +93,6 @@ export default function AdminPanel() {
     };
   }, [socket]);
 
-  // Load assignments for a specific incident
   const loadAssignments = async (incidentId) => {
     try {
       const res = await api.get(`/resources/assignments/${incidentId}`);
@@ -103,7 +102,6 @@ export default function AdminPanel() {
     }
   };
 
-  // Update incident status
   const updateStatus = async (id, status) => {
     try {
       await api.put(`/incidents/${id}/status`, { status });
@@ -114,7 +112,6 @@ export default function AdminPanel() {
     }
   };
 
-  // Assign resource to incident
   const assignResource = async () => {
     if (!selectedResource) return alert("Please select a resource");
     try {
@@ -125,27 +122,23 @@ export default function AdminPanel() {
       setAssignModal(null);
       setSelectedResource("");
       loadData();
-      // Refresh assignments for this incident
       loadAssignments(assignModal.id);
     } catch (err) {
       alert(err.response?.data?.message || "Failed to assign resource");
     }
   };
 
-  // Release a deployed resource back to available
   const releaseResource = async (assignmentId, incidentId) => {
     if (!window.confirm("Release this resource back to available?")) return;
     try {
       await api.post(`/resources/release/${assignmentId}`);
       loadData();
-      // Refresh the assignments list for this incident
       loadAssignments(incidentId);
     } catch (err) {
       alert(err.response?.data?.message || "Failed to release resource");
     }
   };
 
-  // Release directly from resource card
   const releaseResourceDirect = async (resourceId) => {
     if (!window.confirm("Release this resource back to available?")) return;
     try {
@@ -156,7 +149,6 @@ export default function AdminPanel() {
     }
   };
 
-  // Create resource
   const createResource = async (e) => {
     e.preventDefault();
     try {
@@ -168,7 +160,6 @@ export default function AdminPanel() {
     }
   };
 
-  // Create manual alert
   const createAlert = async (e) => {
     e.preventDefault();
     try {
@@ -180,7 +171,6 @@ export default function AdminPanel() {
     }
   };
 
-  // Delete alert
   const deleteAlert = async (id) => {
     if (!window.confirm("Delete this alert?")) return;
     try {
@@ -191,7 +181,6 @@ export default function AdminPanel() {
     }
   };
 
-  // Delete resource
   const deleteResource = async (id) => {
     if (!window.confirm("Delete this resource?")) return;
     try {
@@ -202,7 +191,6 @@ export default function AdminPanel() {
     }
   };
 
-  // Update user role
   const updateRole = async (id, role) => {
     try {
       await api.put(`/admin/users/${id}/role`, { role });
@@ -226,22 +214,20 @@ export default function AdminPanel() {
     <div style={s.page}>
       <LiveStatusBar />
 
-      {/* Navbar */}
       <div className="admin-nav">
-        <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: "#fff" }}>
-          Admin Control Center
-        </h2>
+        <h2 className="admin-brand">⚡ Admin Control Center</h2>
         <div className="admin-nav-links">
           <button
             onClick={() => navigate("/dashboard")}
             style={{
-              padding: "6px 12px",
-              background: "rgba(255,255,255,0.1)",
-              color: "#fff",
-              border: "1px solid rgba(255,255,255,0.2)",
+              padding: "6px 14px",
+              background: "rgba(255,255,255,0.06)",
+              color: "#94a3b8",
+              border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: 8,
               cursor: "pointer",
               fontSize: 13,
+              transition: "all 0.2s",
             }}
           >
             Dashboard
@@ -249,40 +235,30 @@ export default function AdminPanel() {
           <button
             onClick={() => navigate("/map")}
             style={{
-              padding: "6px 12px",
-              background: "rgba(255,255,255,0.1)",
-              color: "#fff",
-              border: "1px solid rgba(255,255,255,0.2)",
+              padding: "6px 14px",
+              background: "rgba(59,130,246,0.1)",
+              color: "#60a5fa",
+              border: "1px solid rgba(59,130,246,0.2)",
               borderRadius: 8,
               cursor: "pointer",
               fontSize: 13,
+              transition: "all 0.2s",
             }}
           >
             Live Map
           </button>
-          <span
-            style={{
-              background: "#7c3aed",
-              color: "#fff",
-              padding: "3px 10px",
-              borderRadius: 20,
-              fontSize: 11,
-              fontWeight: 700,
-            }}
-          >
-            ADMIN
-          </span>
-          <span style={{ color: "#c7d2fe", fontSize: 13 }}>{user?.name}</span>
+          <span className="admin-badge">ADMIN</span>
+          <span style={{ color: "#64748b", fontSize: 13 }}>{user?.name}</span>
           <button
             onClick={() => {
               logout();
               navigate("/login");
             }}
             style={{
-              padding: "6px 12px",
-              background: "#ef4444",
-              color: "#fff",
-              border: "none",
+              padding: "6px 14px",
+              background: "rgba(239,68,68,0.1)",
+              color: "#f87171",
+              border: "1px solid rgba(239,68,68,0.2)",
               borderRadius: 8,
               cursor: "pointer",
               fontSize: 13,
@@ -293,12 +269,11 @@ export default function AdminPanel() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="tab-bar">
         {tabs.map((t) => (
           <button
             key={t.key}
-            style={{ ...s.tabBtn, ...(tab === t.key ? s.tabActive : {}) }}
+            className={`tab-btn ${tab === t.key ? "tab-active" : ""}`}
             onClick={() => setTab(t.key)}
           >
             {t.label}
@@ -307,7 +282,6 @@ export default function AdminPanel() {
       </div>
 
       <div className="page-content">
-        {/* ─── OVERVIEW TAB ─── */}
         {tab === "overview" && stats && (
           <div>
             <div className="stats-grid">
@@ -383,7 +357,6 @@ export default function AdminPanel() {
                 <tbody>
                   {incidents.slice(0, 5).map((inc) => (
                     <tr key={inc.id} style={s.tr}>
-                      {/* ADD THIS */}
                       <td style={s.td}>
                         {inc.image_url ? (
                           <img
@@ -449,7 +422,6 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* ─── INCIDENTS TAB ─── */}
         {tab === "incidents" && (
           <div>
             <h3 style={s.sectionTitle}>All Incidents</h3>
@@ -542,7 +514,6 @@ export default function AdminPanel() {
                         </select>
                       </td>
 
-                      {/* ── RESOURCES COLUMN ── */}
                       <td style={s.td}>
                         <div
                           style={{
@@ -552,7 +523,6 @@ export default function AdminPanel() {
                             minWidth: 180,
                           }}
                         >
-                          {/* Assign button — only for non-resolved */}
                           {inc.status !== "resolved" && (
                             <button
                               onClick={() => {
@@ -565,7 +535,6 @@ export default function AdminPanel() {
                             </button>
                           )}
 
-                          {/* View Assigned — always visible */}
                           <button
                             onClick={() => loadAssignments(inc.id)}
                             style={s.viewBtn}
@@ -573,7 +542,6 @@ export default function AdminPanel() {
                             View Assigned
                           </button>
 
-                          {/* Assignments list with Release buttons */}
                           {assignments[inc.id] && (
                             <div style={s.assignmentList}>
                               {assignments[inc.id].length === 0 ? (
@@ -611,7 +579,6 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* ─── RESOURCES TAB ─── */}
         {tab === "resources" && (
           <div>
             <div style={s.formCard}>
@@ -689,7 +656,7 @@ export default function AdminPanel() {
                   >
                     {r.status}
                   </span>
-                  {/* Release button — only shows when deployed */}
+
                   {r.status === "deployed" && (
                     <button
                       onClick={() => releaseResourceDirect(r.id)}
@@ -711,7 +678,6 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* ─── ALERTS TAB ─── */}
         {tab === "alerts" && (
           <div>
             <div style={s.formCard}>
@@ -817,7 +783,6 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* ─── USERS TAB ─── */}
         {tab === "users" && (
           <div>
             <h3 style={s.sectionTitle}>All Users</h3>
@@ -884,7 +849,6 @@ export default function AdminPanel() {
         )}
       </div>
 
-      {/* ─── ASSIGN RESOURCE MODAL ─── */}
       {assignModal && (
         <div className="modal-overlay">
           <div className="modal">

@@ -157,10 +157,7 @@ export default function MapView() {
           ].map((t) => (
             <button
               key={t}
-              style={{
-                ...s.filterBtn,
-                ...(filter.type === t ? s.filterActive : {}),
-              }}
+              className={`filter-btn ${filter.type === t ? "filter-active" : ""}`}
               onClick={() => setFilter((p) => ({ ...p, type: t }))}
             >
               {t === "all" ? "All" : `${TYPE_ICONS[t]} ${t}`}
@@ -173,10 +170,9 @@ export default function MapView() {
           {["all", "low", "medium", "high"].map((sv) => (
             <button
               key={sv}
-              style={{
-                ...s.filterBtn,
-                ...(filter.severity === sv ? s.filterActive : {}),
-              }}
+              className={`filter-btn ${
+                filter.severity === sv ? "filter-active" : ""
+              }`}
               onClick={() => setFilter((p) => ({ ...p, severity: sv }))}
             >
               {sv}
@@ -189,10 +185,9 @@ export default function MapView() {
           {["all", "pending", "active", "resolved"].map((st) => (
             <button
               key={st}
-              style={{
-                ...s.filterBtn,
-                ...(filter.status === st ? s.filterActive : {}),
-              }}
+              className={`filter-btn ${
+                filter.status === st ? "filter-active" : ""
+              }`}
               onClick={() => setFilter((p) => ({ ...p, status: st }))}
             >
               {st}
@@ -202,8 +197,8 @@ export default function MapView() {
 
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
           <button
+            className={`filter-btn ${showHeatmap ? "heat-active" : ""}`}
             onClick={() => setShowHeatmap((p) => !p)}
-            style={{ ...s.filterBtn, ...(showHeatmap ? s.heatActive : {}) }}
           >
             {showHeatmap ? "Hide Heatmap" : "Show Heatmap"}
           </button>

@@ -1,67 +1,156 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import api from '../api/axios';
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import api from "../api/axios";
 
 export default function Register() {
-  const [form, setForm]       = useState({ name: '', email: '', password: '', phone: '' });
-  const [error, setError]     = useState('');
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    phone: "",
+  });
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login }             = useAuth();
-  const navigate              = useNavigate();
+  const [success, setSuccess] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (form.password.length < 6) return setError('Password must be at least 6 characters');
-    setError('');
+    if (form.password.length < 6)
+      return setError("Password must be at least 6 characters");
+    setError("");
     setLoading(true);
+
+    const slowTimer = setTimeout(() => {
+      setError("Server is taking longer than usual — please wait...");
+    }, 5000);
+
     try {
-      const res = await api.post('/auth/register', form);
-      login(res.data.user, res.data.token);
-      navigate('/dashboard');
+      const res = await api.post("/auth/register", form);
+      clearTimeout(slowTimer);
+      setSuccessMsg(res.data.message);
+      setSuccess(true);
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      clearTimeout(slowTimer);
+      setError(
+        err.response?.data?.message || "Registration failed. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  if (success) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card" style={{ textAlign: "center" }}>
+          <div
+            style={{
+              fontSize: 56,
+              marginBottom: "1rem",
+              animation: "float 3s ease-in-out infinite",
+            }}
+          >
+            📧
+          </div>
+          <h2
+            style={{
+              margin: "0 0 0.5rem",
+              color: "#f1f5f9",
+              fontSize: 20,
+              fontWeight: 700,
+            }}
+          >
+            Check your email
+          </h2>
+          <p
+            style={{
+              color: "#94a3b8",
+              fontSize: 14,
+              lineHeight: 1.7,
+              margin: "0 0 1rem",
+            }}
+          >
+            {successMsg}
+          </p>
+          <p style={{ color: "#475569", fontSize: 13 }}>
+            Didn't receive it? Check your spam folder or{" "}
+            <Link to="/login" className="auth-link">
+              go to login
+            </Link>{" "}
+            to resend.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={s.page}>
-      <div style={s.card}>
-        <h1 style={s.title}>Create Account</h1>
-        <p style={s.sub}>Join the disaster response network</p>
-        {error && <div style={s.err}>{error}</div>}
-        <form onSubmit={handleSubmit} style={s.form}>
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-logo">
+          <div className="auth-logo-icon">🛡️</div>
+        </div>
+
+        <h1 className="auth-title">Create Account</h1>
+        <p className="auth-sub">Join the disaster response network</p>
+
+        {error && <div className="auth-err">{error}</div>}
+
+        <form onSubmit={handleSubmit}>
           {[
-            { key: 'name',     type: 'text',     ph: 'Full Name' },
-            { key: 'email',    type: 'email',    ph: 'Email' },
-            { key: 'phone',    type: 'tel',      ph: 'Phone (optional)' },
-            { key: 'password', type: 'password', ph: 'Password (min 6 chars)' },
-          ].map(({ key, type, ph }) => (
-            <input key={key} style={s.input} type={type} placeholder={ph}
-              value={form[key]} required={key !== 'phone'}
-              onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} />
+            { key: "name", type: "text", ph: "Full Name", label: "Full Name" },
+            {
+              key: "email",
+              type: "email",
+              ph: "you@example.com",
+              label: "Email Address",
+            },
+            {
+              key: "phone",
+              type: "tel",
+              ph: "+91 98765 43210",
+              label: "Phone (optional)",
+            },
+            {
+              key: "password",
+              type: "password",
+              ph: "Min. 6 characters",
+              label: "Password",
+            },
+          ].map(({ key, type, ph, label }) => (
+            <div key={key} className="auth-field">
+              <label className="auth-label">{label}</label>
+              <input
+                className="auth-input"
+                type={type}
+                placeholder={ph}
+                value={form[key]}
+                required={key !== "phone"}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, [key]: e.target.value }))
+                }
+              />
+            </div>
           ))}
-          <button style={s.btn} disabled={loading}>
-            {loading ? 'Creating account...' : 'Create Account'}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="auth-btn"
+            style={{ marginTop: "0.75rem" }}
+          >
+            {loading ? "Creating account..." : "Create Account"}
           </button>
         </form>
-        <p style={s.foot}>Have an account? <Link to="/login" style={s.link}>Sign in</Link></p>
+
+        <p className="auth-foot">
+          Already have an account?{" "}
+          <Link to="/login" className="auth-link">
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );
 }
-
-const s = {
-  page:  { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' },
-  card:  { background: '#fff', borderRadius: 12, padding: '2rem', width: '100%', maxWidth: 400, boxShadow: '0 1px 4px rgba(0,0,0,0.1)' },
-  title: { margin: 0, fontSize: 22, fontWeight: 600, color: '#111', textAlign: 'center' },
-  sub:   { textAlign: 'center', color: '#6b7280', fontSize: 14, marginBottom: '1.5rem' },
-  err:   { background: '#fef2f2', border: '1px solid #fca5a5', color: '#991b1b', padding: '10px', borderRadius: 8, fontSize: 14, marginBottom: '1rem' },
-  form:  { display: 'flex', flexDirection: 'column', gap: '0.75rem' },
-  input: { padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, outline: 'none' },
-  btn:   { padding: '11px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 500, cursor: 'pointer' },
-  foot:  { textAlign: 'center', marginTop: '1rem', fontSize: 14, color: '#6b7280' },
-  link:  { color: '#2563eb', textDecoration: 'none' },
-};
